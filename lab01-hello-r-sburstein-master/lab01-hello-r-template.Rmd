@@ -1,0 +1,96 @@
+---
+title: "Lab 01 - Hello R!"
+subtitle: "due 8-27 at 11:59 PM"
+author: "Scott Burstein"
+date: "08/21/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(datasauRus)
+
+
+datasaurus_dozen %>%
+  count(dataset) %>%
+  print(13)
+```
+
+# Exercise 1
+
+The Datasaurus Dozen dataset has 1846 rows and 3 columns. The variables included in the data frame are dataset, x and y.
+
+# Exercise 2
+
+plot of data in the dino dataset :
+
+```{r plot-dino, fig.height=5, fig.width=5}
+dino_data <- datasaurus_dozen %>%
+  filter(dataset == "dino")
+ggplot(data = dino_data, mapping = aes(x = x, y = y)) + 
+  geom_point()
+```
+
+correlation between `x` and `y` in  dataset 
+
+```{r cor-dino}
+dino_data %>%
+  summarize(r = cor(x, y))
+```
+
+# Exercise 3
+
+Plot of y vs x for the star dataset. Also calculated correlation coefficient between x and y for the dataset.
+
+```{r plot-star, fig.height=5, fig.width=5}
+star_data <- datasaurus_dozen %>%
+  filter(dataset == "star")
+ggplot(data = star_data, mapping = aes(x = x, y = y)) + 
+  geom_point()
+```
+
+This dataset creates a plotted star shape graph.X values are distributed from approximately 20 to 90, where y values distributed from approximately 13 to 90.
+
+
+```{r cor-star}
+star_data %>%
+  summarize(r = cor(x, y))
+```
+
+The correlation coefficient for the star dataset is -0.063, which is effectively equal ot the correlation coefficient for the dino dataset.
+
+# Exercise 4
+
+```{r plot-circle, fig.height=5, fig.width=5}
+circle_data <- datasaurus_dozen %>%
+  filter(dataset == "circle")
+ggplot(data = circle_data, mapping = aes(x = x, y = y)) + geom_point()
+```
+This dataset plots a circle shape. The X and Y values have similar distributions to the dino and star visualizations, which makes sense given that all of the datasets have the same summary statistics.
+
+```{r cor-circle}
+circle_data %>%
+  summarize(r = cor(x, y))
+```
+
+Once again, the correlation coefficient for this dataset is equal to the correlation coefficient's of the previous visualizations. For the circle data, r = -0.0683.
+
+# Exercise 5
+
+```{r plots-all, fig.height=10, fig.width=6}
+ggplot(datasaurus_dozen, aes(x = x, y = y, color = dataset)) + geom_point() + 
+  facet_wrap(~ dataset, ncol = 3) +
+  theme(legend.position = "none")
+```
+In the table of charts, all 13 of the visualizations have the same distributions and summary statistics, however they all portray different images (away, bullseye, circle, dino, dots, h_lines, high_lines, slant_down, slant_up, star, v_lines, wide_lines and x_shape).
+
+```{r cors-all}
+datasaurus_dozen %>%
+  group_by(dataset) %>%
+  summarize(r = cor(x, y))
+```
+Furthermore, all of these datasets have basically the same r value correlation coefficient of ~ -0.065 ± 0.003.
