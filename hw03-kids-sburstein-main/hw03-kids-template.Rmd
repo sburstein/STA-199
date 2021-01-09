@@ -1,0 +1,269 @@
+---
+title: "HW 03 - Kid's Growth"
+subtitle: "due Mon, Nov 9 at 11:59p"
+author: "Scott Burstein"
+date: ""
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Configure Git
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+library(broom)
+``` 
+
+```{r read-in-data, message = FALSE}
+kids <- read_csv("data/kids.csv")
+```
+
+### Exercise 1
+
+```{r ex-1}
+kids$sex <- kids$sex %>% 
+  factor(labels = c("male", "female"))
+```
+
+### Exercise 2
+
+```{r ex-2}
+m_ht_sexAge <- lm(height ~ factor(sex) + age, data = kids)
+tidy(m_ht_sexAge) %>% 
+  select(term, estimate) %>% 
+  mutate(estimate = round(estimate, 5))
+```
+
+$$\widehat{height} = 87.40 + 0.43~age - 1.16~female$$
+
+### Exercise 3
+
+- **Intercept**: Male newborns (age = 0) are expected to have a birth height of 
+87.40 cm. This does not make sense, since the average length for newborns is 
+about 50 cm according to Healthline, which is significantly less than the linear 
+model indicates. Source Cited:
+https://www.healthline.com/health/parenting/average-baby-length#:~:text=
+The%20average%20length%20at%20birth,(45.7%20to%2060%20cm).
+
+- **age**: For every one month increase in age, the height of a child
+is predicted to increase, on average, 0.43 cm holding all else constant. This 
+makes sense given the context of the data and problem.
+
+- **female**: Female children are predicted to have a height that is 1.16 cm 
+less than male children, holding all else constant. 
+This makes some sense, 
+however it is true that females typically grow taller earlier on in their 
+development than males, who usually grow, on average, to be taller by the time 
+they are fully developed. This being said, it would make more sense to have an 
+age variable coefficient that is also dependent on gender.
+
+### Exercise 4
+
+Construct a 90% confidence interval for $\beta_{age}$:
+
+```{r ex-4}
+tidy(m_ht_sexAge, conf.int = TRUE, conf.level = 0.90) %>% 
+  filter(term == "age")
+age_child <- lm(height ~ age, data = kids)
+tidy(age_child)
+```
+
+We are 90% confident that for a one month increase in the child's age, the 
+height is predicted to increase, on average, between 0.418 and 0.448 
+centimeters, holding all else constant.
+
+### Exercise 5
+
+```{r ex-5}
+glance(m_ht_sexAge) %>% 
+  pull(r.squared)
+```
+
+$R^2$ = 0.6951797
+
+Approximately 69.5% of the variability in children's height can be explained by 
+variation in age and gender
+
+### Exercise 6
+
+```{r ex-6}
+age_months = 14.5 * 12
+pred_14_male <- 87.3996177 + 0.4325439 * age_months - 1.1615899 * 0 
+pred_14_male
+```
+
+The predicted height for a fourteen-and-a-half-year-old male is 162.66 cm.
+
+### Exercise 7
+
+Scatterplot of height versus age with points colored by sex:
+
+```{r ex-7}
+predicted_vals <- predict(m_ht_sexAge)
+height_ageSex_scatter <- ggplot(data = kids,
+                                aes(x = age, y = height, color = sex)) +
+                            geom_point(alpha = 0.5) +
+                            geom_line(aes(y = predicted_vals))
+                            
+height_ageSex_scatter
+```
+
+### Exercise 8
+
+```{r ex-8}
+m_ht_sexAge_interact <- lm(height ~ sex + age + sex*age, data = kids)
+tidy(m_ht_sexAge_interact) %>% 
+  select(term, estimate) %>% 
+  mutate(estimate = round(estimate, 5))
+```
+
+$$\widehat{height} = 81.35 + 0.47~age + 10.76~female - 0.08~ age \times female$$
+
+### Exercise 9
+
+**males:**
+$$\widehat{height_{male}} = 81.35 + 0.47~age$$
+
+**females:**
+$$\widehat{height_{female}} = 92.11 + 0.39~age$$
+#female intercept = 92.7
+
+### Exercise 10
+
+$H_o:$
+Null hypothesis is that the relationship between age and height does not depend 
+on sex.
+
+The linear model's slope (rate of change) for height is not affected by the 
+interaction between age and sex. This is what the linear model from Exercise 2 
+shows.
+
+$H_a:$
+Alternative hypothesis is that the relationship between age and height does
+depend on sex.
+
+The linear model's slope (rate of change) for height is affected by the 
+interaction between age and sex. This is what the linear model from exercise 8 
+shows.
+
+```{r ex-10}
+
+#p-value for null hypothesis model:
+tidy(m_ht_sexAge)
+#equals ~0
+
+#p-value for alternative hypothesis model:
+tidy(m_ht_sexAge_interact)
+#also equals ~0
+```
+
+Since p-value for the null hypothesis (first tbl_df) is effectively 0 
+(less than 0.05), there is sufficient evidence to reject the null hypothesis 
+that the relationship between age and height does not depend on sex.
+
+Thus, it is most reasonable to conclude that the relationship between age and 
+height does depend on sex.
+
+
+### Exericse 11
+
+```{r ex-11}
+
+predicted_vals_interact <- predict(m_ht_sexAge_interact)
+height_ageSex_codep_scatter <- ggplot(data = kids,
+                                aes(x = age, y = height, color = sex)) +
+                            geom_point(alpha = 0.5) +
+                            geom_line(aes(y=predicted_vals_interact)) 
+                           #geom_smooth(method = "lm", se = FALSE)
+                            
+height_ageSex_codep_scatter
+```
+
+### Exercise 12
+
+
+#### Tidy Output Estimates for "Interact" Model:
+
+```{r ex-12_tidy}
+tidy(m_ht_sexAge_interact) %>%
+select(term, estimate) %>% 
+mutate(estimate = round(estimate, 5))
+```
+
+Estimates for the Tidy Output Model with `sex`*`age` interaction shown above.
+
+#### "Interact" Model Agument Output:
+
+```{r ex-12_augment}
+m_interact_aug <- m_ht_sexAge_interact %>% 
+  augment() 
+m_interact_aug
+```
+
+Estimates for the Augmented Output Model shown above.
+
+#### Residual Plot with Horizontal Line (y = 0):
+
+```{r ex-12_viz_w_line}
+indep_viz_w_line <- ggplot(data = m_interact_aug, 
+                          aes(x = 1:nrow(kids), y = .resid)) + 
+                  geom_point() +
+                  labs(x = "Index", 
+                       y = "Residual") +
+                  geom_hline(yintercept = 0, 
+                             lwd = 1.5, 
+                             col = "red", 
+                             lty = 2) + 
+                  labs(x = "Predicted Price", 
+                       y = "Residuals")
+indep_viz_w_line
+```
+
+This residual plot shows that the residuals are random. There is no clear trend 
+in the residuals which also is evidence of independence and equal variance.
+
+#### Residual Normality Distribution Plot:
+
+```{r ex-12_normality_hist}
+ggplot(m_interact_aug, 
+       mapping = aes(x = .resid)) + 
+      geom_histogram(bins = 30) +
+      labs(x = "Residuals")
+```
+
+Shows that the residuals are normally distributed. Strong evidence for 
+normality condition being met.
+
+#### Theoretical qq Line Plot:
+
+```{r ex-12_qq_line_plot}
+ggplot(m_interact_aug, 
+       mapping = aes(sample = .resid)) + 
+      stat_qq() +
+      stat_qq_line()
+```
+
+The quantile-quantile plot confirms that the data is normally distributed.
+
+### Exercise 13
+
+There are some limitations of this model (for predicting the height of 0-16 
+year olds based on the data) that is beyond the scope of the diagnostic plots in 
+exercise 12.
+For example, it is somewhat unreasonable to make conclusions about the growth 
+rates for 0-16 year olds when the data has only sampled 8-16 year olds.
+
+Additionally, it might not be true that the relationship between age and height 
+is linear (growth rate likely changes with age). This being said, it is 
+plausible that some of the model's other conditions may not be met yet either,
+such as independence, normality and equal variance. However, based on the 
+visualizations in exercise 12, we can be reasonably confident that these 
+conditions are satisfied.

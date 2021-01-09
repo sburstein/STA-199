@@ -1,0 +1,149 @@
+---
+title: "Lab 08 - ICU"
+subtitle: "due Thu, Nov 12 at 11:59p"
+author: "The Outliers: Morgan Pruchniewski, Katie Zhou, Scott Burstein"
+date: "11/06/20"
+output:
+  pdf_document: default
+---
+
+# Load Packages and Data
+
+```{r load-packages-and-data, message = FALSE, warning = FALSE}
+library(tidyverse) 
+library(broom)
+icu <- read_csv("data/icu.csv")
+icu_test <- read_csv("data/icu_test.csv")
+``` 
+
+### Exercise 1
+
+```{r ex-1-age}
+ggplot(data=icu,aes(x=survive,y=age)) +
+  geom_boxplot(aes(group=survive)) +
+  labs(title="Age distributions for ICU patients by survival outcome",
+       y = "Age",
+       x= "Survival") +
+  scale_x_continuous(breaks = c(0,1), labels=c("Died","Survived"))
+
+```
+Based on this visualization, there seems to be a higher median and interquartile distribution of ages for patients that died in the ICU. 
+
+
+```{r ex-1-emergency}
+ggplot(data=icu, aes(x=survive, fill=(emergency == 1))) +
+  geom_bar(position="fill") + 
+  labs(title="Emergency status for ICU patients by survival outcome",
+       fill="Emergency",
+       x = "Survive",
+       y = "Count") + 
+  scale_x_continuous(breaks = c(0,1), labels=c("Died","Survived"))
+```
+Based on this visualization, there seems to be a higher proportion of emergency cases in patients that died in the ICU than patients that survived.
+
+
+```{r ex-1-sysbp}
+ggplot(data=icu, aes(x=survive, y=sysbp)) +
+  geom_boxplot(aes(group=survive)) +
+  labs(title = "Systolic Blood Pressure Distribution by Survival Status",
+       y = "Systolic Blood Pressure (mmHg)",
+       x = "Survive") + 
+  scale_x_continuous(breaks = c(0,1), labels=c("Died","Survived"))
+```
+Based on this visualization, the median systolic blood pressure of patients that died and survived in the ICU is relatively similar, but in patients that died, the interquartile range is slightly lower.
+
+
+### Exercise 2
+
+```{r ex-2}
+m_log_reg <-
+  glm(data = icu, 
+      survive ~ age + sysbp + emergency, 
+      family = binomial)
+tidy(m_log_reg)
+```
+
+### Exercise 3
+
+$$\frac{\hat{p}}{(1-\hat{p})}= e^{3.80 - 0.04~age + 0.01~sysbp - 1.84~emergency}$$
+
+### Exercise 4
+
+$\hat{\beta}_{emergency} = e^{-1.84}$ 
+
+Holding everything else constant, a patient's odds of survival should be 
+multiplied by $e^{-1.84}$ if they had emergency admission.
+
+### Exercise 5
+
+$\hat{\beta}_{age} = e^{-0.04}$ 
+
+Holding everything else constant, a patient's odds of survival should be 
+multiplied by $e^{-0.04}$ for each additional year of age the patient is.
+
+### Exercise 6
+
+```{r ex-6}
+pat_age <- 87
+pat_sysbp <- 88
+pat_emergency <- 1
+
+new_data <- data.frame(age = pat_age, sysbp = pat_sysbp, emergency = pat_emergency)
+
+pred_surv <- augment(m_log_reg, newdata = new_data)
+pred_surv
+
+```
+
+Based on the data, we predict that when an 87 year old patient is admitted in an
+emergency situation with a systolic blood pressure of 88 mm of Hg, their 
+predicted log-odds of survival is -.220. 
+
+### Exercise 7
+
+```{r ex-7}
+odds <- exp(-0.21986813)
+prob = odds / (1 + odds)
+prob
+```
+
+This patient’s predicted probability of survival is 0.445.
+
+### Exercise 8
+
+The fact that the patient from Exercise 6 and 7 survived is somewhat surprising.
+They had a predicted probability of survival of 44.5%, which is gives them 
+almost an equal chance of surviving versus not surviving. So it would not be 
+surprising for their survival outcome to have gone either way. They also had 
+predicted log odds of -0.220, which supports their survival.
+
+### Exercise 9
+
+$$\hat{p}=e^{3.80 - 0.04~age + 0.01~sysbp - 1.84~emergency} ~/~ 1 + e^{3.80 - 0.04~age + 0.01~sysbp - 1.84~emergency}$$
+```{r ex-9-algebra}
+pat2_sysbp <- 80
+
+#.50 < (exp(3.79532688 -0.03567972age + (0.01053840 * pat2_sysbp) -1.83843786 * 1)) / (1 + exp(3.79532688 - 0.03567972age + (0.01053840 * pat2_sysbp) + (-1.83843786 * 1)))
+
+# 1 < exp(3.79532688 -0.03567972age + (0.01053840 * pat2_sysbp) -1.83843786 * 1)
+# 0 < (3.79532688 -0.03567972age + (0.01053840 * pat2_sysbp) -1.83843786) 
+# 0.03567972age < 3.79532688 + (0.01053840 * pat2_sysbp) - 1.83843786
+# age < (3.79532688 + (0.01053840 * pat2_sysbp) - 1.83843786) / 0.03567972
+pat2_age = (3.79532688 + (0.01053840 * pat2_sysbp) - 1.83843786) / 0.03567972
+pat2_age
+```
+
+The patient must be 78.47486 years old or younger in order to have a predicted 
+probability of survival greater than 0.50.
+
+### Exercise 10
+
+```{r ex-10}
+new_data_2 <- data.frame(age = icu_test$age, 
+                         sysbp = icu_test$sysbp, 
+                         emergency = icu_test$emergency, 
+                         survived = icu_test$survive)
+
+pred_surv_2 <- augment(m_log_reg, newdata = new_data_2, type.predict = "response")
+pred_surv_2
+```

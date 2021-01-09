@@ -1,0 +1,109 @@
+---
+title: "AE 15"
+subtitle: "It's Jeopardy!"
+date: "Due: October 30, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+```{r packages, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(stringr)
+```
+
+We will work with a dataset containing the category, value, question, and 
+answer for two recent seasons of Jeopardy.
+
+If you've never seen Jeopardy before, watch a brief clip 
+[here](https://www.youtube.com/watch?v=qY_q99iaWGw).
+
+- `category`: category of question
+- `value`: value of question in dollars
+- `question`: text of question
+- `answer`: question answer
+
+```{r load-data, message = FALSE}
+jeopardy <- read_csv("data/questions.csv")
+```
+
+```{r view}
+glimpse(jeopardy)
+```
+
+
+1. Write a short line of code that returns all rows where the category has a 
+period.
+
+```{r ex-1}
+jeopardy %>% 
+  filter(str_detect(category, "\\.")) %>% 
+  print(n = Inf)
+```
+
+2. Write a short line of code that returns all rows where the answer contains 
+"North Carolina".
+
+```{r ex-2}
+jeopardy %>% 
+  filter(str_detect(answer, "North Carolina"))
+```
+
+
+3. Using a single code pipeline, return all rows where the question contains a 
+(numeric) year between 1800 and 1999.
+
+```{r ex-3}
+jeopardy %>% 
+  filter(str_detect(question, "1[89]\\d\\d")) %>% #"\\d\\d\\d\\d" all 4-digit numbers
+  print(n = Inf)
+
+```
+
+
+4. Use `str_sub` to extract the **last three** characters from every answer 
+and store the results in a new column. Do not use `str_length`.
+
+```{r ex-4}
+jeopardy %>% 
+  mutate(last_three = str_sub(answer, -3, -1)) %>% 
+  select(answer, last_three)
+```
+
+
+5. Using a single code pipeline, return all rows with answers that end with 
+three vowels.
+
+```{r ex-5}
+jeopardy %>% 
+  filter(str_detect(answer, "[AEIOUaeiou][AEIOUaeiou][AEIOUaeiou]$")) %>% 
+  select(answer)
+```
+
+
+6. Using a single code pipeline, return all answers that end with `ng` but not
+`ing`.
+
+```{r ex-6}
+jeopardy %>% 
+  filter(str_detect(answer, "[^i]ng$")) %>% 
+  select(answer)
+```
+
+
+7. Use a single code pipeline to create a new variable `prop_vowel` that
+is the proportion of all letters in each answer that are vowels. What is the
+highest? Lowest?
+
+```{r ex-7}
+jeopardy %>% 
+  mutate(vowels = str_count(answer, "[AEIOUaeiou]"),
+         letters = str_count(answer, "[[:alpha:]]"),
+         prop_vowel = vowels / letters) %>%
+  arrange(desc(prop_vowel)) %>% 
+  select(answer, vowels, letters, prop_vowel) %>% 
+  filter(!is.na(prop_vowel), letters > 6) %>% 
+  slice(1:3, n())
+```
+
+

@@ -1,0 +1,116 @@
+---
+title: "AE 14"
+subtitle: "Birth Weights"
+date: "Due: October 21, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+# Configure Git
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+# Load Packages
+
+```{r packages, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(broom)
+```
+
+The Child Health and Development Studies investigated 1,192 pregnancies between 
+1960 and 1967 among women on  the  Kaiser  Foundation  Health  Plan  in  San 
+Francisco. Researchers  were  interested  in  modeling  the  weight  of the 
+infants in ounces (`bwt`) using the pregnancy time in days (`gestation`), 
+whether the child was first born (`parity`, 0 means first pregnancy), the 
+mother’s height in inches (`height`), and whether the mother was a smoker 
+(`smoke`, 1 means smoker). Data is from *OpenIntro Statistics (4th edition)* 
+and available in the `births.csv` file.
+
+```{r load-data, message = FALSE}
+births <- read_csv("data/births.csv")
+```
+
+## Multiple Regression
+
+1. Fit a multiple linear regression model predicting `bwt` with the main effects
+`gestation`, `parity`, `height`, and `smoke` and display the R output in tidy
+format.
+
+```{r reg1}
+m_main <- lm(bwt ~ gestation +parity + height + smoke, data = births)
+tidy(m_main) %>% 
+  select(term, estimate) %>% 
+  mutate(estimate = round(estimate, 5))
+```
+
+2. Write out the equation of the estimated regression line.
+
+$$\widehat{weight} = -85.42 + 0.44~gestation -3.46~parity + 1.34~height - 8.47~smoke$$
+
+3. Interpret each of the estimated model coefficients.
+
+- **Intercept**: Babies with a pregnancy length of 0, that are first-born,
+born to nonsmoking mothers with a height of 0 are predicted to have a birth weight 
+of -85.42 ounces.
+- **Gestation**: For every one day increase in pregnancy length, the birth weight 
+of a baby is predicted to increase, on average, 0.44 ounces holding all else constant.
+- **Smoke**: Babies born to smoking mothers are predicted to have a birth weight that is 
+8.47 ounces less than babies born to nonsmoking mothers, holding all else constant.
+
+4. Report $R^2$ and provide an interpretation in the context of the problem. Why
+might the adjusted $R^2$ be preferred over $R^2$?
+
+```{r glance}
+glance(m_main)
+```
+
+
+5. Construct a 95% confidence interval for $\beta_{height}$ and provide a 
+concise, careful interpretation in the context of the problem.
+
+```{r tidy}
+tidy(m_main, conf.int = TRUE, conf.level = 0.95) %>% 
+  filter(term == "height")
+
+height_baby <- lm(bwt ~ height, data = births)
+tidy(height_baby)
+```
+
+We are 95% confident that for a one inch increase in the mothers height, the 
+birthweight is predicted to increase, on average, between 0.980 and 1.69 ounces,
+holding all else constant.
+
+## Multiple Regression with Interaction
+
+6. Fit a multiple linear regression model predicting `bwt` with main effects for
+`gestation`, `smoke` and their interaction.
+
+```{r model2}
+m_int <- lm(bwt ~ smoke + gestation + gestation * smoke, data = births)
+tidy(m_int)
+```
+
+
+7. Write out the model equations for smokers and nonsmokers.
+
+
+$$\widehat{Weight} = 20.3 - 73.5~smoke + 0.367~gestation + 0.234~smoke \times gestation$$
+
+**Nonsmokers:**
+$$\widehat{Weight} = 20.3 + 0.367~gestation$$
+
+**Smokers:**
+$$\widehat{Weight} = -53.21 + 0.603 \times gestation$$
+8. Visualize the linear model on a single set of axes.
+
+```{r viz-model}
+ggplot(data = births,
+       mapping = aes(x = gestation, y = bwt, color = factor(smoke))) +
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "lm", se = FALSE, fullrange = TRUE)
+```
+

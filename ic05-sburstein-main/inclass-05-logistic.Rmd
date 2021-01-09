@@ -1,0 +1,93 @@
+---
+title: "In-class Exercise 10-27"
+subtitle: "Medical School Admission"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load-packages, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(broom)
+```
+
+We will work with a dataset containing information on 55 medical school
+applications from undergraduate students. We are interested in predicting
+`Acceptance` based on `Sex` and `MCAT` score.
+
+```{r load-data-and-packages, message = FALSE}
+med_school <- read_csv("data/medschool.csv")
+```
+
+## Logistic Regression
+
+1. Perform a brief EDA of the relationship between sex and acceptance and MCAT
+score and acceptance.
+
+```{r ex-1}
+
+ggplot(med_school,
+       aes(x = Sex, fill = factor(Acceptance))) + 
+  geom_bar(position = "fill")
+
+ggplot(med_school,
+       aes(x = MCAT, y = Acceptance, color = Sex)) + 
+  geom_jitter(height = 0.01)
+
+```
+
+ 
+2. Fit a logistic regression model with `Acceptance` as the response and `MCAT`
+and `Sex` as predictors. Report the model output in tidy format.
+
+```{r ex-2}
+m_mcat <- glm(Acceptance ~ MCAT + Sex, data = med_school, family = "binomial")
+tidy(m_mcat)
+```
+
+
+3. Write out the estimated model.
+
+$$ \text{log}\left(\frac{\hat{p}}{1 - \hat{p}}\right) = -8.95 + 0.267~MCAT - 1.07~Sex$$
+
+$$ \hat{p} = \frac{e^{-8.95 + 0.267~MCAT - 1.07~Sex}}{1 + e^{-8.95 + 0.267~MCAT - 1.07~Sex}}$$
+
+4. Write out the model for men.
+
+$$ \text{log}\left(\frac{\hat{p}}{1 - \hat{p}}\right) = -8.95 + 0.267~MCAT - 1.07$$
+
+5. Write out the model for women.
+
+$$ \text{log}\left(\frac{\hat{p}}{1 - \hat{p}}\right) = -8.95 + 0.267~MCAT$$
+
+6. What is the interpretation of $\hat{\beta}_{mcat}$?
+
+Holding all else constant, the odds ratio of admission for an additional point 
+on the MCAT is $e^{0.267} = 1.306$.
+
+Holding all else constant, for every one unit increase in MCAT core, the odds of admission is multiplied by a factor of 1.306.
+
+7. What is the interpretation of $\hat{\beta}_{sex}$?
+
+Holding all else constant, the odds ratio of acceptance to medical school for 
+males versus females is $e^{-1.0622} = 0.3443$
+
+8. What is your prediction for the log odds of acceptance for a male student
+with an MCAT of 30?
+
+```{r ex-8}
+newdata <- tibble(Sex = "M", MCAT = 30)
+pred_log_odds <- augment(m_mcat, newdata = newdata) %>% 
+  pull(.fitted)
+pred_log_odds
+```
+
+9. What is your prediction for the acceptance probability for a male student
+with an MCAT of 30?
+
+```{r ex-9}
+pred_prob <- exp(pred_log_odds) / (1 + exp(pred_log_odds))
+pred_prob
+```

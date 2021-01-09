@@ -1,0 +1,164 @@
+---
+title: "AE 17"
+subtitle: "Functions"
+date: "Due: November 13, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+```{r load-packages, message = FALSE}
+library(tidyverse)
+library(rvest)
+```
+
+## Functions
+
+1. Rewrite this code snippet as an appropriately named function: 
+`x / sum(x, na.rm = TRUE)`.  This code creates weights which sum to 1.
+
+```{r new weights function}
+create_weights <- function(x) {
+  x / sum(x, na.rm = TRUE)
+}
+
+t <- 1:10
+create_weights(t)
+create_weights(c(1:10, NA))
+```
+
+
+2. Create a function to calculate the standard error of a variable, where SE = 
+standard deviation divided by the square root of the sample size. Start with a
+vector like `x <- 0:5` and write code to find the SE of x, then turn it into a 
+function to handle any vector `x`.
+
+```{r standard error}
+
+se <- function(x) {
+  sd(x) / sqrt(length(x))
+}
+
+x <- 0:5
+se(c(1:100, NA))
+
+```
+
+
+3. Read the source code for each of the following three functions, puzzle out 
+what they do, and then brainstorm better names.
+
+```{r, eval = FALSE}
+
+# Checks if string is matching first letters substr of length prefix
+is_matching_prefix <- function(string, prefix) {
+  substr(string, 1, nchar(prefix)) == prefix
+}
+
+# Removes last element of vector with length x
+remove_last_element <- function(x) {
+  if (length(x) <= 1) return(NULL)
+  x[-length(x)]
+}
+
+remove_last_element(c("statistics", "data science", "data", "199"))
+
+# rep overwrites each element in vector x with y element length(x) times
+overwrite <- function(x, y) {
+  rep(y, length.out = length(x))
+}
+
+overwrite(1:100, c(1,2))
+
+# Checks if number of chars. of x is even (TRUE) or odd (FALSE)
+is_even <- function(x) {
+  nchar(x) %% 2 == 0
+}
+
+is_even("statistic")
+
+```
+
+4. Create `both_na()`, a function that takes two vectors of the same length and 
+returns the number of positions that have an NA in both vectors.  Hint: first 
+create two vectors like `x <- c(1, 2, 3, NA, NA)` and `y <- c(NA, 1, 2, 3, NA)` 
+and write code that works for `x` and `y`, then turn it into a function that can 
+handle any `x` and `y`.
+
+```{r test two vectors}
+x <- c(1, 2, 3, NA, NA)
+y <- c(NA, 1, 2, 3, NA)
+
+# need to check if vectors are same length
+
+both_na <- function(x, y) {
+  sum(is.na(x) & is.na(y))
+}
+
+is.na(x)
+sum(is.na(x))
+
+is.na(y)
+sum(is.na(y))
+
+sum(is.na(x) + is.na(y))
+
+both_na(x, y)
+```
+
+
+5. Use a `map` function to find the mean of every column in `mtcars`.
+
+```{r mean fxn}
+map_dbl(mtcars, mean)
+```
+
+
+6. Use a `map` function to find the number of unique values in each column of
+`msleep`.
+
+```{r num unique vals fxn}
+map_int(msleep, n_distinct)
+```
+
+
+7. Use a `map` function to find the type of each column in `msleep`.
+
+```{r column type fxn}
+map_chr(msleep, typeof)
+```
+
+
+8. Explain what is meant by "clean coding" and include specific references to how 
+the lengths of variable and function names relate to scope.
+
+- Long scope: functions short, variables long
+
+- Small scope: functions long, variables short
+
+9. Brainstorm a tedious task (this could be something relevant to your project 
+or something else you think of) and create a function to automate this task.
+
+```{r homemade greetings fxn}
+
+# Homemade greetings fxn that gives message based on time of day (for server)
+greetings <- function(time = Sys.time()) {
+  hour <- parse_number(str_sub(time, 12, 13))
+  # hour(time)
+  if (hour < 12) {
+    print("Good morning!")
+  } else if (hour < 17) {
+    print("Good afternoon!")
+  } else {
+    print("Good evening!")
+  }
+}
+
+Sys.time()
+greetings()
+
+greetings(time = "2019-04-29 09:30:00 CDT") # 9:30 AM (Morning time)
+greetings(time = "2019-04-29 23:30:00 CDT") # 11:30 PM (Evening time)
+
+```
+

@@ -1,0 +1,114 @@
+---
+title: "In-Class Notes 10-22"
+subtitle: "Cherry Trees"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+```{r packages, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(broom)
+```
+
+A silviculturist is interested in finding the volume of black cherry trees in 
+order to determine timber yield. This is difficult to measure, so the researcher 
+uses multiple regression to predict volume (cubic feet) based on height (feet) 
+and girth (inches) for a random sample of 31 trees that have been cut down.
+
+Both height and girth are easy to measure so the idea is one can hopefully 
+have a reasonable prediction for volume based on girth and height. Data 
+taken from *OpenIntro Statistics (4th edition)*.
+
+```{r load-data, message = FALSE}
+trees <- read_csv("data/trees.csv")
+head(trees)
+nrow(trees)
+glimpse(trees)
+```
+
+## Multiple Regression
+
+1. Fit a multiple linear regression model predicting `Volume` based on `Height`
+and `Girth` and display the R output in tidy format.
+
+```{r ex-1}
+ml <- lm(Volume ~ Height + Girth, data = trees)
+tidy(ml) %>% 
+  select(term, estimate) %>% 
+  mutate(estimate = round(estimate, 2))
+```
+
+2. Write out the equation of the estimated regression line.
+
+$$\widehat{volume} = -58 + 0.34~Height + 4.71~Girth$$
+
+3. Create a 95% confidence interval for the population slope for girth and 
+provide an interpretation in the context of the problem.
+
+```{r ex-3}
+tidy(ml, conf.int = TRUE, conf.level = 0.95) %>% 
+  filter(term == "Girth") %>% 
+  select(term, conf.low, conf.high)
+```
+
+We are 95% confident that for a one inch increase in girth, volume is predicted 
+to increase, on average, between 4.17 and 5.24 cubic inches holding all else 
+constant.
+
+4. Is there evidence of a relationship between height and volume? Answer 
+formally using a CLT-based hypothesis test.
+
+$H_o: \beta_{Height} = 0$
+$H_a: \beta_{height} \neq 0$
+
+The test statistic is 2.6 and the $p$-value is less than 0.001 so we reject the 
+null hypothesis. The data provides convincing evidence that height and volume 
+are related. We have significant evidence that the true slope is different from 
+zero.
+
+5. Consider your fitted model from Exercise 1. Are the conditions for linear 
+regression met? Check each condition by constructing appropriate diagnostic 
+plots and commenting on each.
+
+```{r ex-5}
+m1_aug <- augment(m1)
+m1_aug
+```
+
+```{r diagnostics}
+# volume versus height
+ggplot(m1_aug,
+       aes(y = Volume, x = Height)) +
+  geom_point()
+
+# volume versus girth
+ggplot(m1_aug, 
+       aes(y = Volume, x = Girth)) +
+  geom_point()
+
+# residuals in order of collection
+ggplot(m1_aug,
+       aes(y = .resid, x = 1:nrow(m1_aug))) +
+  geom_point()
+
+# residuals versus fitted
+ggplot(m1_aug,
+       aes(y = .resid, x = .fitted)) +
+  geom_point() +
+  geom_hline(yintercept = 0, lwd = 2, lty = 2, col = "red")
+
+#normality histogram
+ggplot(m1_aug,
+       aes(x = .resid)) +
+  geom_histogram(bins = 15)
+
+# normality qq line
+ggplot(m1_aug, mapping = aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line()
+```
+
+
+
+

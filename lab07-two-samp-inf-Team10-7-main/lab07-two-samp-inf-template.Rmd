@@ -1,0 +1,275 @@
+---
+title: "Lab 07 - Two-sample inference"
+subtitle: "due Thu, Oct 22 at 11:59p"
+author: "The Outliers: Morgan Pruchniewski, Katie Zhou, Scott Burstein"
+date: "10/16/20"
+output:
+  pdf_document: default
+---
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+``` 
+
+```{r read-in}
+burrito <- read_csv("data/burrito.csv")
+```
+
+
+## Exercise 1
+
+$H_o: \mu_s \le \mu_n$
+Null hypothesis: Burritos with sour cream have the same mean synergy score as 
+burritos without sour cream.
+
+$H_a: \mu_s > \mu_n$ 
+Alternative hypothesis: Burritos with sour cream have a greater synergy score 
+than burritos without sour cream.
+
+```{r ex-1-filter}
+sourcream <- burrito %>%
+  filter(sourcream=="present")
+
+no_sourcream <- burrito %>%
+  filter(sourcream=="none")
+```
+
+```{r ex-1-bootstrap}
+set.seed(1)
+n_sims <- 2000
+boot_diffs <- numeric(n_sims)
+for(i in 1:n_sims){
+  
+  indices_s <- sample(1:nrow(sourcream), replace = TRUE)
+  indices_n <- sample(1:nrow(no_sourcream), replace = TRUE)
+  
+  temp_s <- sourcream %>% 
+    slice(indices_s) %>% 
+    summarize(mean_synergy = mean(synergy)) %>% 
+    select(mean_synergy) %>% 
+    pull()
+  temp_n <- no_sourcream %>% 
+    slice(indices_n) %>% 
+    summarize(mean_synergy = mean(synergy)) %>% 
+    select(mean_synergy) %>% 
+    pull()
+ 
+  boot_diffs[i] <- temp_s - temp_n
+}
+
+```
+
+```{r difference}
+sourcream_diffs <- tibble(diffs=boot_diffs)
+
+boot_mean <- sourcream_diffs %>%
+  summarize(mean = mean(diffs)) %>% 
+  pull()
+
+sourcream_diffs <- sourcream_diffs %>%
+  mutate(shifted_diffs = diffs + (0 - boot_mean))
+
+sourcream_diffs %>%
+  filter(shifted_diffs >= boot_mean) %>%
+  summarize(p_value = n()/nrow(sourcream_diffs))
+```
+
+Based on these hypotheses and the above simulation, with the p-value being 
+greater than $\alpha=0.05$, we fail to reject the null hypothesis. The p-value 
+indicates a .103 probability of seeing a difference as great or greater than 
+observed assuming the truth of $H_o$. Therefore, we do not have sufficient 
+evidence to conclude that sour cream makes burritos have a higher synergy score.
+
+And my (Katie's) personal opinion: nay. Sour cream tends to make burritos both soggier and harder to eat.
+
+## Exercise 2
+
+$H_o: \mu_s \ge \mu_n$
+Null Hypothesis: Burritos with sour cream have the same mean temperature score as 
+burritos without sour cream.
+
+$H_a: \mu_s < \mu_n$
+Alternate Hypothesis: Burritos with sour cream have a lower mean temperature score
+than burritos without sour cream.
+
+```{r ex-2-bootstrap}
+set.seed(2)
+n_sims <- 2000
+boot_temp <- numeric(n_sims)
+for(i in 1:n_sims){
+  
+  indices_st <- sample(1:nrow(sourcream), replace = TRUE)
+  indices_nt <- sample(1:nrow(no_sourcream), replace = TRUE)
+  
+  temp_st <- sourcream %>% 
+    slice(indices_st) %>% 
+    summarize(mean_temp = mean(temp)) %>% 
+    select(mean_temp) %>% 
+    pull()
+  temp_nt <- no_sourcream %>% 
+    slice(indices_nt) %>% 
+    summarize(mean_temp = mean(temp)) %>% 
+    select(mean_temp) %>% 
+    pull()
+ 
+  boot_temp[i] <- temp_st - temp_nt
+}
+```
+
+```{r difference-temps}
+sourcream_temp_diffs <- tibble(temps=boot_temp)
+
+boot_mean_tempdiff <- sourcream_temp_diffs %>%
+  summarize(mean = mean(temps)) %>% 
+  pull()
+boot_mean_tempdiff
+
+sourcream_temp_diffs <- sourcream_temp_diffs %>%
+  mutate(shifted_temp_diffs = temps + (0 - boot_mean_tempdiff))
+
+sourcream_temp_diffs %>%
+  filter(shifted_temp_diffs > boot_mean_tempdiff) %>%
+  summarize(p_value = n() / nrow(sourcream_temp_diffs))
+
+```
+
+In this simulation-based hypothesis test, the test statistic is 0.0083. This means that the mean temperature score of burritos with sour cream was actually 0.0083 points higher/better than the mean temperature score of burritos without sour cream. 
+Since the $\alpha$ value is .05 and we found a p-value of 0.491, we fail to 
+reject the null hypothesis. In context of this question, this p-value indicates a 0.491 probability of observing a difference in mean temperature of burritos with sour cream vs. burritos without sour cream that is at least as negative as the one in this study, assuming the null hypothesis is true.
+This means that we lack evidence to prove that there is a difference in mean temperature between burritos with sour cream and burritos without sour cream.
+
+## Exercise 3
+
+```{r ex-3-ci}
+synergy_interval <- sourcream_diffs %>%
+  summarize(lower = quantile(diffs, 0.025),
+            upper = quantile(diffs, 0.975))
+
+synergy_interval
+```
+We can be 95% confident that the true mean difference in temperature scores between burritos with and without sour cream lies between (-0.078, 0.33). The values not inside this confidence interval represent a rejection region, and because our test statistic does not lie within this region, we fail to reject the null. 
+
+## Exercise 4
+
+$H_o: \mu_s \ge \mu_n$
+Null hypothesis: The mean uniformity of burritos with sour cream is equal to the
+mean uniformity of burritos without sour cream.
+
+$H_a: \mu_s < \mu_n$
+Alternative hypothesis: The mean uniformity of burritos with sour cream is less
+than the mean uniformity of burritos without sour cream.
+
+```{r ex-4-uniformity-ttest}
+t.test(uniformity ~ sourcream,
+  data = burrito,
+  mu = 0,
+  var.equal = FALSE,
+  alternative = "greater",
+  conf.level = 0.95)
+```
+
+Under $H_o$, the distribution of this test statistic is a t-distribution with n-1 (130.52) degrees of freedom, and the test statistic is 2.3442.
+Based on the above CLT analysis, the p-value is 0.01, which is less than 
+$\alpha = 0.05$, so we can reject the null hypothesis. 
+In context of this problem, the p-value represents the probability of obtaining 
+a difference in mean uniformity of burritos with sour cream that is at least as negative as the one observed, given the truth of $H_o$. We thus have evidence to suggest that burritos with sour cream do have a mean uniformity score less than that of burritos without sour cream.
+
+## Exercise 5
+
+```{r ex-5}
+t.test(uniformity ~ sourcream,
+  data = burrito,
+  mu = 0,
+  var.equal = FALSE,
+  alternative = "two.sided",
+  conf.level = 0.95)
+```
+
+We can be 95% confident that the true difference in burrito uniformity is 
+between 0.04955344 and 0.58545877. 
+
+## Exercise 6
+
+```{r ex-6-probability}
+alpha <- 0.05
+prob_type1 <- 1 - (1 - alpha)^10
+prob_type1
+```
+The probability of making at least one Type 1 error in 10 independent hypothesis tests is 0.401, referring to the chance of falsely rejecting a true null hypothesis. This means that our tests would lead us to reject the null hypothesis that the mean uniformity of burritos with sour cream is less than the mean uniformity of burritos without, when in truth they are indeed equal.
+
+
+## Exercise 7
+
+From the findings in exercise 6, we see that there is a 40% probability of a making a type I error, which is a significant chance of falsely rejecting the null hypothesis. If someone then selectively reported these results, omitting the tests in which the opposite conclusion was reached, readers might be led to believe that sour cream does lower the uniformity of a burrito despite the fact that the total evidence for rejecting the null hypothesis is actually very weak. 
+
+This misrepresentation of statistical analysis could also be applied to associate sour cream with lower rating scores for tortilla quality, salsa quality, meat-to-filling ratio, 
+uniformity, synergy, etc. This is potentially misleading and unethical when 
+presented as a statistical finding to the general public, and could have potentially lasting implications: for example, this could result in undue biases against burrito vendors that put sour cream on burritos by default.
+
+## Exercise 8
+
+$H_o : \mu_G = \mu_N$
+
+$H_a : \mu_G \neq \mu_N$
+
+
+```{r ex-8}
+burrito <- burrito %>%
+  mutate(avg_score = (tortilla + temp + meat + fillings + salsa + mfr + 
+                        uniformity + synergy) / 8)
+
+t.test(avg_score ~ guac,
+  data = burrito,
+  mu = 0,
+  var.equal = FALSE,
+  alternative = "two.sided",
+  conf.level = 0.95)
+
+```
+Under $H_o$, the distribution of this test statistic is a t-distribution with n-1 (279.79) degrees of freedom, and the test statistic is 0.81368.
+
+The p-value of .4165 is larger than the $\alpha$ value of .05, so we fail to
+reject the null hypothesis. In context of this problem, the p-value represents the probability of seeing a mean overall score difference in burritos with guacamole and without guacamole as or more extreme than observed, assuming $H_o$ is true.
+
+We thus lack significant evidence to prove that burritos with guacamole have a different average overall perceived 
+quality score compared to burritos without guacamole.
+
+## Exercise 9
+
+Treating these as numeric variables is technically valid because they are ordinal variables from a rating scale, as opposed to categorical or binary variables. However, in reality, this approach might be flawed because the numerical scores are subjective and susceptible to bias. 
+Every person ranks off of their own preferences and opinions, so no two equal 
+scores actually mean the same thing. In addition to this, all of the numeric 
+scores are given the same weight to the overall score, even though some factors might be more or less 
+important to the burrito's overall quality.
+
+## Exercise 10
+
+```{r ex-10-new-var}
+burrito <- burrito %>%
+  mutate(overall_quality = case_when(
+    avg_score <= 3 ~ "alright",
+    avg_score > 3 & avg_score <= 4 ~ "solid",
+    avg_score > 4 ~ "whoa!"
+  ))
+```
+
+$H_o$: The presence of fries and the overall quality category of burritos are independent; there is no association between the two variables.
+$H_a$: The presence of fries and the overall quality category of burritos are not independent; there is an association between the two variables.
+
+```{r ex-10-test}
+x <- table(burrito$fries, burrito$overall_quality)
+x
+
+chisq.test(x)
+```
+
+Under $H_o$, the distribution of this test statistic is approximated by a $\chi^2$ distribution with 2 degrees of freedom ((r-1) x (c-1)).
+Here, the test statistic is 0.32, and the p-value is 0.852, which is larger than $\alpha = 0.05$, so we fail to reject the null hypothesis.
+
+In context of the original research question, this p-value indicates a 0.85 probability of obtaining an association between presence of fries and overall burrito quality that is as or more extreme than the test statistic assuming $H_o$. 
+
+From this $\chi^2$ test, we don't have sufficient evidence to show an association between burritos having fries and their respective quality category ("alright", "solid", or "whoa!").
+
+

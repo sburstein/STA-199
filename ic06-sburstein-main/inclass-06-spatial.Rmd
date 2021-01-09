@@ -1,0 +1,133 @@
+---
+title: "In-class Exercise 11-3"
+subtitle: "North Carolina Voting"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+## Polling Questions
+
+In a poll conducted by Reuters / IPSOS, they take a random sample of 1854 likely 
+voters and fidn that 52.1% support Biden and 47.8% support Trump.
+
+Is there enough evidence to claim that a majority of likely voters support
+Biden based on this sample?
+
+1. Define the hypotheses.
+
+$Ho$: The true proportion of likely voters ewho are planning to vote for Biden 
+is equal to 0.50.
+
+$Ha$: The true proportion of likely voters who are planning to vote for Biden is 
+greater than 0.50.
+
+$Ho: p \leq 0.50$
+
+$Ha: p > 0.50$
+
+2. Collect and summarize data.
+
+```{r sample-phat}
+phat <- 563 / 1080
+phat
+```
+
+3. Assess the evidence.
+
+Find the probability of getting sample data as or more extreme as ours, assuming 
+the null hypothesis is true (assuming $Ho: p = 0.50$). This is the $p$-value.
+
+```{r sim-p-value}
+
+set.seed(1)
+num_sims <- 10000
+
+sim_dist <- numeric(num_sims)
+outcomes <- c("Biden", "Trump")
+
+for(i in 1:num_sims){
+  sim <- sample(outcomes, size = 1080, prob = c(0.50, 0.50), replace = TRUE)
+  sim_dist[i] <- sum(sim == "Biden") / length(sim)
+}
+
+null_dist <- tibble(sim_dist)
+
+ggplot(null_dist,
+       aes(x = sim_dist)) +
+  geom_histogram() +
+  geom_vline(xintercept = phat, lwd = 2, col = "red")
+
+null_dist %>%
+  summarize(p_value = mean(sim_dist >= phat))
+
+```
+
+
+```{r packages, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(sf)
+```
+
+We first read in the file `nc_votes.shp` with the `st_read` function, saving as
+`nc_votes`.
+
+```{r}
+nc_votes <- st_read("data/nc_votes.shp", quiet = TRUE)
+```
+
+1. Carefully examine `nc_votes`. How does it differ from the data frames we have
+seen before? What type of geometry is associated with each simple feature?
+
+```{r ex-1}
+nc_votes
+```
+
+
+2. Use `nc_votes` to create a map of North Carolina.
+
+```{r ex-2}
+ggplot(nc_votes) + 
+  geom_sf()
+```
+
+
+3. Build on your previous map so that the counties have a fill color 
+corresponding to the percentage of mail-in ballots that were rejected. Carefully
+consider effective labels, colorings, and aesthetics.
+
+```{r ex-3}
+ggplot(nc_votes) + 
+  geom_sf(aes(fill = rejectd / mailed)) +
+  scale_fill_gradient(low = "#fde0dd", high = "#c51b8a") +
+  theme_bw() +
+  labs(fill = "Proportion of mailed ballots that were rejected")
+```
+
+
+4. Create a map of North Carolina where the counties have a fill color 
+corresponding to the percentage of votes that were cast by mail. Carefully
+consider effective labels, colorings, and aesthetics.
+
+```{r ex-4}
+ggplot(nc_votes) +
+  geom_sf(aes(fill = mailed/(mailed + voted))) +
+  scale_fill_gradient(low = "#fff7f3", high = "#49006a") +
+  theme_bw() +
+  labs(fill = "Proportion of votes cast by mail")
+```
+
+
+5. Explore on your own and create an effective spatial data visualization using
+these data.
+
+```{r ex-5}
+ggplot(nc_votes) +
+  geom_sf(aes(fill = (voted + mailed) / (regstrd))) +
+  scale_fill_gradient(low = "#fff7f3", high = "#49006a") +
+  theme_bw() +
+  labs(fill = "Proportion",
+       title = "Proportion of Registered Voters who Cast Ballot",
+       subtitle = "By NC County")
+```
+
