@@ -1,0 +1,8 @@
+---
+title: "Merge Conflict Simulation" 
+author: "The Outliers"
+date: ""
+output: pdf_document
+---
+
+Member 3: My name is: Katie

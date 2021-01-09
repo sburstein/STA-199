@@ -1,0 +1,211 @@
+---
+title: "Lab 05 - Bootstrap estimation"
+subtitle: "due Thu, Sep 24 at 11:59p"
+author: "The Outliers: Morgan Pruchniewski, Scott Burstein, Katie Zhou"
+date: "09/18/20"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+durham_survey <- read_csv("data/durham_survey.csv")
+view(durham_survey)
+``` 
+
+# Exercise 1
+
+Provide a point estimate of the mean satisfaction with the fire department 
+(`quality_fire`) among Durham residents in 2018.
+
+```{r ex-1_mean-satisfaction-fire-dept}
+mean_satisfaction_fire_dept <- durham_survey %>%
+  filter(quality_fire != 9) %>%
+  summarize(mean = mean(quality_fire)) %>%
+  print()
+```
+
+# Exercise 2
+
+Construct a 95% bootstrap interval for the mean satisfaction with
+the fire department among durham residents in 2018. Use at least 1,000 bootstrap
+samples. Make sure your interval is *reproducible*.
+
+```{r ex-2_95-bootstrap-int}
+
+boot_dist <- numeric(1000)
+
+for (i in 1 : 1000) {
+  set.seed(i)
+  indices <- sample(1 : nrow(durham_survey), replace = TRUE)
+  boot_mean <- durham_survey %>%
+    slice(indices) %>%
+    filter(quality_fire != 9) %>%
+    summarize(boot_mean = mean(quality_fire)) %>%
+    pull()
+  boot_dist[i] <- boot_mean
+}
+
+boot_means <- tibble(boot_dist)
+
+bootstrap_interval <- boot_means %>%
+  summarize(lower = quantile(boot_dist, 0.025),
+            upper = quantile(boot_dist, 0.975)
+            )
+bootstrap_interval
+```
+
+# Exercise 3
+
+Visualize the bootstrap distribution and your confidence interval from 
+Exercise 2 on a single plot. Remember to include an informative title and axis 
+labels. Provide a careful interpretation of your interval in the context of the 
+problem.
+
+If you need help visualizing your bootstrap distribution and confidence interval on 
+the same plot, check out slides 35 - 40 from Tuesday's bootstrap lecture. This walks 
+through creating the plot step-by-step. Your final plot for exercise 3, 6, and 9 
+should look similar to the plot on slide 40.
+
+```{r ex-3-bootstrap-distribution-visual}
+ggplot(data = boot_means, aes(x = boot_dist)) +
+  geom_histogram(color = "black", fill = "blue", alpha = .8) + 
+  geom_vline(xintercept = c(bootstrap_interval$lower, 
+                            bootstrap_interval$upper),
+             color = "red") +
+  labs(title = "Bootstrap Distribution of Means for Durham Fire Quality",
+       x = "Bootstrap Means", y = "Count")
+```
+
+If we computed 1000 samples of the mean for Durham's fire quality satisfaction, we can be 95% confident that the actual mean is within the specified bounds.
+
+# Exercise 4
+
+Provide a point estimate of the *proportion* of the respondents in the 
+survey who were satisfied (score of 4 or 5) with the quality of parks and
+recreation (`quality_parks_rec`) in Durham. 
+
+```{r parks-rec-satisfaction}
+satisfied_parks_rec <- durham_survey %>%
+  mutate(satisfied = quality_parks_rec == 4 | quality_parks_rec == 5) %>%
+  summarize(proportion_satisfied = mean(satisfied)) %>% 
+  print()
+```
+0.5477 of Durham residents responded that they were satisfied with the quality of parks and recreation.
+
+
+# Exercise 5
+
+Construct a **99%** two-sided bootstrap interval for the proportion of 
+respondents in the survey who were satisfied with the quality of parks and 
+recreation in Durham. Use at least 1,000 bootstrap samples. Make sure your
+interval is *reproducible*.
+
+```{r ex-5_99-bootstrap-int}
+boot_dist <- numeric(1000)
+
+for (i in 1 : 1000) {
+  set.seed(i)
+  indices <- sample(1 : nrow(durham_survey), replace = TRUE)
+  boot_prop_satisfied <- durham_survey %>%
+  slice(indices) %>%
+  mutate(satisfied = quality_parks_rec == 4 | quality_parks_rec == 5) %>%
+  summarize(proportion_satisfied = mean(satisfied)) %>%
+    pull()
+  boot_dist[i] <- boot_prop_satisfied
+}
+
+boot_props <- tibble(boot_dist)
+
+bootstrap_interval <- boot_props %>%
+  summarize(lower = quantile(boot_dist, 0.005),
+            upper = quantile(boot_dist, 0.995)
+            )
+bootstrap_interval
+#need to remove 9 values from mean prop.
+```
+
+# Exercise 6
+
+Visualize the bootstrap distribution and your confidence interval from 
+Exercise 5 on a single plot. Remember to include an informative title and axis
+labels. Interpret the confidence interval you constructed.
+
+```{r parks-bootstrap-visualization}
+ggplot(data = boot_props, aes(x = boot_dist)) +
+  geom_histogram(color = "black", fill = "blue", alpha = .8) + 
+  geom_vline(xintercept = c(bootstrap_interval$lower, 
+                            bootstrap_interval$upper),
+             color = "red") +
+  labs(title = "Bootstrap Distribution of Satisfaction for Parks/Recreation",
+       x = "Bootstrap Proportion Satisfied/Unsatisfied", y = "Count")
+```
+
+If we computed 1000 samples of the given data, 99% of those simulations within the marked interval would contain the true proportion of satisfaction for the Parks/Recreation department. 
+
+
+
+# Exercise 7
+
+Provide a point estimate of the *correlation* between survey scores of
+perceived quality of bike paths (`quality_bike_path`) and the perceived quality 
+of pedestrian paths (`quality_ped_path`). 
+
+```{r ex-7_correlation}
+correlation_paths <- durham_survey %>%
+  filter(quality_bike_path != 9,
+         quality_ped_path != 9) %>%
+  summarize(r_value = cor(quality_bike_path, quality_ped_path)) %>%
+  print()
+```
+
+# Exercise 8
+
+Construct a 95% bootstrap confidence interval for the correlation between perceived 
+quality of bike paths and pedestrian paths. Use at least 1,000 bootstrap samples. 
+Make sure your interval is *reproducible*.
+
+```{r ex-8_correlation_bootstrap}
+boot_dist <- numeric(1000)
+
+for (i in 1 : 1000) {
+  set.seed(i)
+  indices <- sample(1 : nrow(durham_survey), replace = TRUE)
+  boot_correlation <- durham_survey %>%
+  slice(indices) %>%
+  filter(quality_bike_path != 9,
+         quality_ped_path != 9) %>%
+  summarize(r_value = cor(quality_bike_path, quality_ped_path)) %>%
+    pull()
+  boot_dist[i] <- boot_correlation
+}
+
+boot_cor <- tibble(boot_dist)
+
+bootstrap_interval <- boot_cor %>%
+  summarize(lower = quantile(boot_dist, 0.025),
+            upper = quantile(boot_dist, 0.975)
+            )
+bootstrap_interval
+```
+
+# Exercise 9
+
+Visualize the bootstrap distribution and your confidence interval from
+Exercise 8. Remember to include an informative title and axis labels. Interpret
+the confidence interval you constructed.
+
+```{r ex-9 corr-bootstrap-visualization}
+ggplot(data = boot_cor, aes(x = boot_dist)) +
+  geom_histogram(color = "black", fill = "blue", alpha = .8) + 
+  geom_vline(xintercept = c(bootstrap_interval$lower, 
+                            bootstrap_interval$upper),
+             color = "red") +
+  labs(title = "Bootstrap Distribution of Correlation Between Percieved Quality",
+       subtitle =  "of Pedestrian Paths and Bike Paths",
+       x = "bootstrap correlation between ped. path and bike path satisfaction", y = "Count")
+```
+If we computed 1000 samples of the given data, 95% of those simulations within the marked interval would contain the true correlation of between pedestrian path satisfaction and bike path satisfaction.

@@ -1,0 +1,224 @@
+---
+title: "HW 01 - Data wrangling and visualization"
+subtitle: "due 9-17 at 11:59 PM"
+author: "Scott Burstein"
+date: "09/17/2020"
+output: html_document
+---
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+``` 
+
+```{r read-in-data, message = FALSE}
+lego_sales <- read_csv("data/lego_sales.csv")
+view(lego_sales)
+```
+
+1. What are the three most common first names of purchasers?
+
+```{r ex-1_most-common-first-names}
+mostCommon1stNames <- lego_sales %>%
+  count(first_name) %>%
+  arrange(desc(n)) %>%
+  top_n(3) #comment out to see the full list sorted in descending order
+mostCommon1stNames
+```
+
+The three most common first names of purchasers are Jackson, Jacob and Joseph with counts n = 13, 11 and 11 respectively.
+
+2. What are the three most common themes of lego sets purchased?
+
+```{r ex-2_most-common-set-themes}
+mostCommonSetThemes <- lego_sales %>%
+  count(theme) %>%
+  arrange(desc(n)) %>%
+  top_n(3) #comment out to see the full list sorted in descending order
+mostCommonSetThemes
+```
+
+The three most common Lego set themes purchased are Star Wars (n=75), Nexo Knights (n=64), and, tied for 3rd, Gear and Mixels (n=55). 
+
+3. Among the most common theme of lego sets purchased, what is the most common 
+subtheme?
+
+```{r ex-3_most-common-set-subtheme}
+
+#The most common set theme can be determined from running above code chunk and 
+#determining theme with greatest n.
+#For more explicit needs, the following will also return the most popular theme:
+# mostCommonSetThemes %>% top_n(1) %>% select(theme)
+
+mostCommonSubtheme <- lego_sales %>%
+  filter(theme == 'Star Wars') %>% 
+  #Can modify theme input to view most common subtheme for different theme.
+  count(subtheme) %>%
+  arrange(desc(n)) %>%
+  top_n(1) #comment out to see the full list sorted in descending order
+
+mostCommonSubtheme
+  
+```
+
+The most common subtheme within the Star Wars theme was 'The Force Awakens' with n = 15.
+
+4. Create a new variable called `age_group` and group the ages into the 
+following categories: "18 and under", "19 - 25", "26 - 35", "36 - 50", "51 and over". 
+
+**Be sure to save the updated data set so you can use the new variable in other questions.**
+
+```{r ex-4_age-group-update}
+lego_sales <- lego_sales %>%
+  mutate(age_group = 
+           case_when(
+             age <= 18 ~ "18 and under",
+             age <= 25 ~ "19-25",
+             age <= 35 ~ "26-35",
+             age <= 50 ~ "36-50",
+             TRUE ~ "51 and over"
+             )
+         )
+```
+
+5. What is the probability a randomly selected customer 
+   - Is in the 19 - 25 age group? 
+   - Is in the 19 - 25 age group **<u>and</u>** purchased a Duplo set? 
+   - Is in the 19 - 25 age group **<u>given</u>** they purchased a Duplo set? 
+   
+```{r ex-5_customer-probabilities}
+#-----------------------------------
+#Probability_1
+
+#P(19-25) = (19-25 age group) / total
+
+P1 <- lego_sales %>%
+  count(age_group)  %>%
+  mutate(age_props = n / sum(n)) %>%
+  filter(age_group == "19-25")
+P1
+
+#P(19-25) = 129 / 620 = 0.2080645
+
+#-----------------------------------
+#Probability_2
+
+#P(19-25 & purchased Duplo set) = (19-25 & purchased Duplo set) / total
+#not necessarily independent events.
+
+P2 <- lego_sales %>%
+  count(age_group, theme)  %>%
+  mutate(age_props = n / sum(n)) %>%
+  filter(age_group == "19-25", theme == "Duplo")
+P2
+
+#P(19-25 & purchased Duplo set) = 9 / 620 = 0.01451613
+
+#-----------------------------------
+#Probability_3
+
+#P(19-25 GIVEN purchased Duplo set) =
+#P(19-25 & purchased Duplo set) / P(purchased a Duplo set)
+
+P_duplo <- lego_sales %>%
+  count(theme)  %>%
+  mutate(theme_props = n / sum(n)) %>%
+  filter(theme == "Duplo")
+P_duplo
+
+#P_duplo = 35 / 620 = 0.05645161
+
+P3 <- 9 / 35
+P3
+
+#P3 = P2 / P_duplo = 0.01451613 / 0.05645161 = 0.2571429
+```
+
+The probability that a customer is in the 19 - 25 age group is 0.2080645.
+
+The probability that a customer is in the 19 - 25 age group and purchased a 
+Duplo set is 0.01451613.
+
+The probability that a customer is in the 19 - 25 age group given that they 
+purchased a Duplo set is 0.2571429.
+
+6. Which age group has purchased the largest number of lego sets? How many did 
+they purchase?
+
+```{r ex-6_quantity-purchased-by-age-group}
+age_group_most_purchases <- lego_sales %>%
+  group_by(age_group) %>%
+  summarise(quantity_purchased = sum(quantity)) %>%
+  arrange(desc(quantity_purchased)) %>%
+  top_n(1) #comment out to see the full list sorted in descending order
+age_group_most_purchases
+```
+
+The 36-50 age group has purchased the largest number of lego sets. This age 
+group purchased 313 lego sets.
+
+7. Which age group has spent the most money on legos?
+
+```{r ex-7_age-group-most-money}
+age_group_most_money <- lego_sales %>%
+  group_by(age_group) %>%
+  summarise(total_USD_spent = sum(us_price * quantity)) %>%
+  arrange(desc(total_USD_spent)) %>%
+  top_n(1) #comment out to see the full list sorted in descending order
+  
+age_group_most_money
+```
+
+The 36-50 age group has spent the most total money on purchases of lego sets. 
+This age group has spent $9,532.87 on lego sets.
+
+8. Come up with a question you want to answer using these data, and write it down. 
+Then, create a data visualization that answers the question, and briefly explain how 
+your visualization answers the question.
+
+Does Lego set theme affect price? How well is piece count correlated with price 
+of Lego sets across popular set themes?
+
+```{r ex-8_piece-price-correlation-visualization}
+piece_price_corr_viz <-
+  lego_sales %>%
+  filter(theme %in% c("Duplo", "Ninjago", "Star Wars", "Nexo Knights")) %>%
+  
+  ggplot(mapping = aes(x = pieces,
+                       y = us_price,
+                       color = theme)) +
+    geom_point(na.rm = TRUE)
+  
+piece_price_corr_viz
+```
+
+Chose four of the most popular Lego set themes to analyze: "Duplo", "Ninjago", 
+"Star Wars", and "Nexo Knights". Plotted the piece count on x-axis and set price 
+on y-axis for sets across different Lego themes. There does appear to be a 
+difference in cost based on set theme.
+
+9. Add one element to the plot from the previous exercise to change the look of
+the plot without changing the underlying data. For example, you can change the
+theme, background color, add annotations, etc. State the change you're making and 
+display the updated visualization. We encourage you to be creative!
+
+```{r ex-9_improved_vizualization}
+piece_price_corr_viz + 
+  theme_dark() + 
+  scale_colour_brewer() +
+  labs(x = 'Pieces (#)',
+       y = 'Price ($)',
+       title = 'Piece vs. Price Correlation'
+       ) +
+  geom_smooth()
+```
+
+Added labs, theme, color and geom_smooth() trendlines to reflect the difference in price per piece count for four of the most popular Lego set themes. 
+
+It is evident that Lego does modify set price based on theme. 
+From the visualization, it seems as though the Star Wars theme is usually priced 
+higher than Nexo Knights and Ninjago for any piece count. Another interesting 
+takeaway is that the Duplo theme, while generally having small piece counts, 
+is priced higher per piece than any of the other three set themes for many 
+distinct piece counts.

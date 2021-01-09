@@ -1,0 +1,145 @@
+---
+title: "AE 08"
+subtitle: "For Loops and the Bootstrap"
+date: "Due: Sep 16, 11:59 PM"
+author: "Scott Burstein"
+output: 
+  html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Clone a repo + start a new project
+
+Go to the `ae08-[GITHUB USERNAME]` repo, clone it, and start a new project in 
+RStudio. See the earlier labs and application exercises for detailed instructions.
+
+## Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the 
+email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+```{r load-packages, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+# For loops
+
+```{r for-loops}
+
+output <- numeric(10)
+
+for(i in 1:10){   #the sequence
+
+  output[i] <- i        #the body  
+  
+}
+i
+```
+
+# General Social Survey
+
+The General Social Survey (GSS) gathers data on American society to "monitor and 
+explain trends and constants in attitudes, behaviors, and attributes [and] to 
+make high-quality data easily accessible to scholars, students, policy makers, 
+and others".
+
+The GSS data includes questions on demographics, behavior, attitudes, and topics 
+of special interest. Topics include civil liberties, nationalism, crime, 
+religion, national spending, morality, and many others.
+
+The target population is adults living in households in the United States and
+data has been collected since 1972. You can read more about the methodology 
+[here](https://gss.norc.org).
+
+We will analyze a single question from the 2016 GSS which asked "About how many 
+[minutes] per week do you spend sending and answering electronic mail or e-mail?"
+
+Some cleaning and manipulation has already been done. A representative sample of 
+114 adult Americans is stored in the `gss_email.csv` file.
+
+```{r read-in-data}
+gss_email <- read_csv("data/gss_email.csv")
+```
+
+Let's calculate a 95\% confidence interval for the mean amount of time Americans
+spend on email weekly.
+
+```{r bootstrap-mean}
+boot_dist <- numeric(1000) 
+
+for(i in 1:1000){ 
+  set.seed(i) 
+  indices <- sample(1:nrow(gss_email), replace = TRUE) 
+  
+  boot_mean <- gss_email %>% 
+    slice(indices) %>%
+    summarize(boot_mean = mean(email_minutes)) %>%  
+    pull()                       
+
+  boot_dist[i] <- boot_mean            
+}
+boot_dist
+indices
+```
+
+```{r confidence-bounds}
+quantile(boot_dist, 0.025)
+quantile(boot_dist, 0.975)
+```
+
+The 95\% confidence interval is (376.9469 , 609.7276). 
+
+What is the correct interpretation of this interval?
+
+There is a 95% probability that the population mean is between the specified interval bounds.
+
+Poll time!
+
+Construct a visualization of the amount of time Americans spend on email per 
+week? What do you notice?
+
+```{r visualize-email}
+ggplot(data = gss_email,
+       mapping = aes(x = email_minutes)) +
+  geom_histogram()
+```
+
+Let's calculate a 95\% confidence interval for the **median** amount of time 
+Americans spend on email weekly. Remember to remove `eval = FALSE` when you are
+done coding.
+
+
+```{r bootstrap-median, eval = FALSE}
+boot_dist <- numeric(1000) 
+
+for(i in 1:1000){ 
+  
+  set.seed(i) 
+  indices <- sample(1:nrow(gss_email), replace = TRUE)
+  
+  boot_median <- gss_email %>% 
+    slice(indices) %>%
+    summarize(boot_median = median(email_minutes)) %>%  
+    pull()                       
+
+  boot_dist[i] <- boot_median            
+}
+
+boot_dist
+boot_median
+```
+
+```{r confidence-interval}
+quantile(boot_dist, 0.025)
+quantile(boot_dist, 0.975)
+```
+
+Provide a careful interpretation of your interval in the context of the problem.
+
+The 95% confidence interval indicates that we can be 95% confident that the real median value for email minutes per week is between these two values (120 and 300).

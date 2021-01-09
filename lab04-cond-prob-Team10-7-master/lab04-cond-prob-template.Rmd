@@ -1,0 +1,121 @@
+---
+title: "Lab 04 - Smoking and Health Outcomes" 
+subtitle: "due 9-17 at 11:59 PM"
+author: "Morgan Pruchniewski, Katie Zhou, & Scott Burstein"
+date: "09/12/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+library(mosaicData) 
+data(Whickham)
+``` 
+
+# Exercise 1
+
+How many observations are in this dataset? What does each observation represent?
+
+There are 1,314 observations in the Whickham dataset. Each observation spans 3 columns with outcome, smoker, and age information. Each observation represents an individual person.
+   
+# Exercise 2
+
+How many variables are in this dataset? What type of variable is each?
+Display each variable using an appropriate visualization.
+
+```{r data-variables}
+summary(Whickham)
+```
+There are 3 variables (`outcome`, `smoker`, and `age`) in the Whickham dataset.
+`outcome` is an un-ordered categorical variable with possible values of "Alive" or "Dead". `smoker` is an un-ordered categorical variable with possible values of "Yes" or "No". `age` is a discrete variable of type integer representing age of each individual at the time of data collection.
+
+# Exercise 3
+
+What would you expect the relationship between smoking status and health outcome to be?
+
+I would expect there to be a negative correlation, i.e. a participant who smokes would be less likely to be alive.
+
+
+# Exercise 4
+
+Create a visualization depicting the relationship between smoking status and health outcome.
+
+```{r smoking-health}
+ggplot(Whickham, aes(smoker)) +
+  geom_bar(position = "fill", aes(fill = outcome))
+```
+
+# Exercise 5
+
+Calculate the conditional probabilities of health outcome for each smoking status. 
+Briefly describe the relationship, and evaluate whether or not it is what you 
+expected. Use the visualization from the previous exercise and the conditional 
+probabilities to support your narrative.  
+
+```{r conditional-probabilities}
+Whickham %>%
+  count(outcome,smoker) %>%
+  group_by(smoker) %>%
+  mutate(prop = n / sum(n))
+```
+
+People that did smoke are less likely to be dead than those who didn't. Likewise, people who smoked are more likely to be alive than those who didn't. Based off of the conditional probabilities, this is not what we expected but it is supported by the above visualization, which showed that there is a larger proportion of alive smokers than non-smokers.
+
+# Exercise 6
+
+Create a new variable called `age_cat` using the following scheme:
+
+- `age <= 44 ~ "18-44"`
+- `age > 44 & age <= 64 ~ "45-64"`
+- `age > 64 ~ "65+"`
+
+```{r categorized-ages}
+Whickham <- Whickham %>%
+  mutate(age_cat = case_when(
+    age <= 44 ~ "18-44",
+    age > 44 & age <= 64 ~ "45-64",
+    age > 64 ~ "65+"
+    )
+  )
+
+glimpse(Whickham)
+```
+
+# Exercise 7
+
+Re-create the visualization from Exercise 4, this time faceting by `age_cat`.
+
+```{r age-cat-faceted}
+ggplot(Whickham, aes(smoker)) +
+  geom_bar(position = "fill", aes(fill = outcome)) +
+  facet_wrap(.~ age_cat)
+```
+
+# Exercise 8
+
+Extend the table from Exercise 5 by breaking it down by age category. 
+
+```{r cond-prob-by-age-cat}
+Whickham %>%
+  count(outcome,smoker, age_cat) %>%
+  group_by(smoker) %>%
+  mutate(prop = n / sum(n))
+```
+
+# Exercise 9
+
+Compare the visualization from Exercise 7 and the table from Exercise 8 to what 
+you previously observed in Exercises 4 and 5. What changed, and what might 
+explain the change? Use the table you calculated in Exercise 8 to support your 
+narrative. 
+
+In exercises 4 and 5, the data is more ambiguous because it is not broken down by age groups. In exercises 7 and 8, it is more evident that with changes in age group, the proportion of individuals dead or alive drastically changes (for both smoking statuses). The 18-44 age group has the smallest proportion of dead participants, whereas the 65+ age group has the largest proportion of dead participants. In addition,there is also a small, yet obvious correlation between change in proportion dead/alive based on smoking status across any of the age categories or the aggregate data set.
+
+When you break down the data set by age group, the relative proportions of individuals being dead or alive changes with age category. It also becomes evident that there is a change with smoking status in the proportion of individuals being dead or alive for a given age group.
+
+The conditional probabilities in the table from exercise 8 support this claim, because the proportion of smokers with the Dead outcome is higher across each age category.
+
