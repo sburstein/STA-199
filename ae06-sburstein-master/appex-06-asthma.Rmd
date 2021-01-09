@@ -1,0 +1,108 @@
+---
+title: "AE 06"
+subtitle: "Asthma"
+author: "Scott Burstein"
+date: "`r Sys.Date()`"
+output: 
+  html_document
+---
+
+## Clone a repo + start a new project
+
+Go to the `ae06-[GITHUB USERNAME]` repo, clone it, and start a new project in 
+RStudio. See the earlier labs and application exercises for detailed instructions.
+
+## Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the 
+email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+```{r load-packages, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+The following tables are representative of the SIROCCO trial (Bleecker et al.,
+2016), which examined the safety and efficacy of benralizumab for patients with 
+severe, poorly controlled asthma. The tables present baseline demographic
+information for patients enrolled in the file.
+
+You may knit the document to see the tables. "Q4W" means "every four weeks" and 
+"Q8W" means "every eight weeks.
+
+```{r, echo = F}
+
+trt <- c(rep("Placebo", 407), 
+         rep("Benralizumab Q4W", 398), 
+         rep("Benralizumab Q8W", 399))
+
+sex <- c(rep("Male", 138), rep("Female", 269),
+         rep("Male", 124), rep("Female", 275),
+         rep("Male", 146), rep("Female", 252))
+
+race <- c(rep("White", 302), rep("Black", 16), rep("Asian", 50), rep("Other", 39),
+          rep("White", 285), rep("Black", 15), rep("Asian", 54), rep("Other", 45),
+          rep("White", 287), rep("Black", 15), rep("Asian", 50), rep("Other", 46))
+
+knitr::kable(table(trt, sex))
+knitr::kable(table(trt, race))
+```
+
+Answer the following questions using the table provided above (knit this
+document first!). If a probability cannot be calculated, indicate what 
+additional information is needed in order to do so.
+
+- What is the probability that a randomly selected patient in the trial was 
+assigned to placebo?
+
+```{r P-placebo}
+
+#P(placebo) = P( trt = "placebo" / sum(trt) )
+P = 407 / 1204
+P
+#P(placebo) = 0.338039867109635
+```
+
+- What is the probability that a randomly selected patient in the trial was 
+male?
+
+```{r P-male}
+
+#P(male) = P( sex = "Male" / total )
+P = 408 / 1204
+P
+#P(male) = 0.338870431893688
+```
+
+- What is the probability that a randomly selected patient in the trial was 
+assigned to placebo **or** was male?
+
+```{r P-placebo-OR-male}
+
+#P(placebo-OR-male) = P( trt = "placebo" / n) + P( sex = "Male" / n) - P(( trt = "placebo" AND sex = "Male" ) / n)
+#P = (407 / 1204) + (408 / 1204) - (138 / 1204)
+P = (407 + 408 - 138) / 1204
+P
+#P(placebo-OR-male) = 0.5622924
+```
+
+- What is the probability that a randomly assigned patient in the trial was 
+assigned to placebo **and** was male?
+
+```{r P-placebo-AND-male}
+
+#P(placebo-AND-male) = P(( trt = "placebo" AND sex = "Male" ) / n)
+P = 138 / 1204
+P
+#P(placebo-AND-male) = 0.1146179
+```
+
+- What is the probability that a randomly assigned patient in the trial was
+male **or** was white?
+
+Cannot be calculated since gender is not accounted for in the probabilities associated with treatment by race. (i.e. what proportion of patients were male AND white (that also did / did not receive treatment) ?). The data was not fully associated across all variables. We do not know for certain that these were independent variables, we would be able to proceed.
+

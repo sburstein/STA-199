@@ -1,0 +1,151 @@
+---
+title: "Lab 03 - Nobel Laureates" 
+subtitle: "due 9-3 at 11:59 PM"
+author: "The Outliers: Scott Burstein, Morgan Pruchniewski, Katie Zhou"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Load Packages
+
+We'll use the **tidyverse** package for this analysis. Run the following code in the Console to load this package.
+
+```{r load-packages}
+library(tidyverse)
+```
+
+# Load Data
+
+```{r load-data}
+nobel <- read_csv("data/nobel.csv")
+```
+
+# Exercises
+
+**Team Member 1: Type the team's responses to exercises 1 and 2.**
+
+1. How many observations and how many variables are in the dataset? Use inline code to answer this question.
+
+
+There are 26 variables and 935 observations in the dataset.
+
+2. Create a new data frame called `nobel_living` that filters for
+  - laureates for whom `country` is available
+  - laureates who are people as opposed to organizations (organizations are denoted with `"org"` as their `gender`)
+  - laureates who are still alive (their `died_date` is `NA`)
+
+```{r filtered_nobel}
+
+nobel_living <- nobel %>%
+  filter(!is.na(country),
+         gender != "org",
+         is.na(died_date))
+
+nobel_living
+
+```
+
+  
+Confirm that once you have filtered for these characteristics you are left with a data frame with 228 observations.
+  
+*Team Member 1: Knit, commit and push your changes to GitHub with an appropriate commit message again. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
+
+**All other team members: <b>Pull</b> to get the updated documents GitHub. Click on the .Rmd file, and you should see the responses to exercises 1 and 2. **
+
+**Team Member 2: It's your turn! Type the team's response to exercise 3.**
+
+```{r newvariables}
+nobel_living <- nobel_living %>%
+  mutate(
+    country_us = if_else(country == "USA", "USA", "Other")
+  )
+
+nobel_living_science <- nobel_living %>%
+  filter(category %in% c("Physics", "Medicine", "Chemistry", "Economics"))
+
+
+```
+
+
+
+3. Create a faceted bar plot visualizing the relationship between the category of prize and whether the laureate was in the US when they won the nobel prize. Note: Your visualization should be faceted by category. For each facet you should have two bars, one for winners in the US and one for Other. Flip the coordinates so the bars are horizontal, not vertical. Interpret your visualization, and say a few words about whether the Buzzfeed headline is supported by the data.
+
+```{r barplot}
+ggplot(data = nobel_living_science, mapping = aes(x = country_us)) +
+  geom_bar() +
+  facet_grid(category ~ .) +
+  coord_flip()
+  
+```
+The faceted bar plot shows that most of the laureates were based in the USA when they won their prizes, since for every category most of the winners were from the USA. Therefore, the Buzzfeed headline is supported by the data.
+
+*Team Member 2: Knit, commit and push your changes to GitHub with an appropriate commit message again. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
+
+**All other team members: <b>Pull</b> to get the updated documents GitHub. Click on the .Rmd file, and you should see the responses to exercise 3. **
+
+**Team Member 3: It's your turn! Type the team's response to exercises 4 - 5.**
+
+### But of those US-based Nobel laureates, many were born in other countries
+
+4. Create a new variable called `born_country_us` that has the value `"USA"` if the laureate is born in the US, and `"Other"` otherwise.
+
+```{r filter-country-born}
+
+nobel_living_science <- nobel_living_science %>%
+  mutate(
+    born_country_us = if_else(born_country == "USA", "USA", "Other")
+    )
+
+nobel_living_science
+```
+
+5. Add a second variable to your visualization from Exercise 3 based on whether the laureate was born in the US or not. Your final visualization should contain a facet for each category, within each facet a bar for whether they won the award in the US or not, and within each bar whether they were born in the US or not. Based on your visualization, do the data appear to support Buzzfeed's claim? Explain your reasoning in 1-2 sentences.
+
+```{r visualization-born-us}
+ggplot(data = nobel_living_science, mapping = aes(x = country_us)) +
+  geom_bar(aes(fill = born_country_us)) +
+  facet_grid(category ~ .) +
+  coord_flip()
+```
+
+This faceted bar plot shows that of the USA-based Nobel Laureates, a moderate amount had been born in other countries. No category had a majority of laureates who had been born in other. countries, but Physics and Medicine had the highest proportion who were born in other countries but received the award while based in the US. Buzzfeed does not claim that most of the Nobel prize winners had been born abroad, so this plot does support Buzzfeed's claim that "many" of them had been born in other countries.
+
+*Team Member 3: Knit, commit and push your changes to GitHub with an appropriate commit message again. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
+
+**All other team members: <b>Pull</b> to get the updated documents GitHub. Click on the .Rmd file, and you should see the responses to exercises 4 and 5. **
+
+**Team Member 4. It's your turn! Type the team's response to exercise 6.**
+
+### Here’s where those immigrant Nobelists were born
+
+6. In a single pipeline, filter for laureates who won their prize in the US, but were born outside of the US, and then create a frequency table (with the `count()` function) for their birth country, `born_country`, and arrange the resulting data frame in descending order of number of observations for each country.
+
+```{r foreign-laureate-filter}
+nobel_living_science %>%
+  filter(
+    country_us == "USA",
+    born_country_us != "USA") %>%
+  count(born_country) %>%
+  arrange(desc(n))
+```
+
+*Team Member 4: Knit, commit and push your changes to GitHub with an appropriate commit message again. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
+
+**All other team members: <b>Pull</b> to get the updated documents GitHub. Click on the .Rmd file, and you should see the team's completed lab!**
+
+## Wrapping up
+
+Go back through your write up to make sure you followed the coding style guidelines we discussed in class (e.g. no long lines of code).
+ 
+Also, make sure all of your R chunks are properly labeled, and your figures are reasonably sized.
+
+**Team Member 2:** Make any edits as needed. Then knit, commit, and push the updated documents to GitHub if you made any changes. 
+
+All other team members can click to pull the finalized document. 
+
+## Submission 
+
+**Team Member 3**: Upload the team's PDF to Gradescope. Be sure to include every team member's name in the Gradescope submission. Associate the "Overall" graded section with the first page of your PDF, and mark where each answer is  to the exercises. If any answer spans multiple pages, then mark all pages.
+
+There should only be **<u>one</u>** submission per team on Gradescope. 
+

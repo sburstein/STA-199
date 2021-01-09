@@ -1,0 +1,152 @@
+---
+title: "Joining data sets + data wrangling"
+author: "Scott Burstein"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+## Clone a repo + start a new project
+
+Go to the `ae05-[GITHUB USERNAME]` repo, clone it, and start a new project in RStudio. See the earlier labs for detailed instructions.
+
+## Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(nycflights13)
+library(maps)
+```
+
+1. Run the setup code chunk. If you receive an error, you will need to run `install.packages("nycflights13")` and `install.packages("maps")` in the console first then re-run the setup code chunk.
+
+2. Familiarize yourself with the datasets `flights` and `airports` using the documentation `?flights`, `glimpse()`, and other functions. What information is provided in each dataset?
+
+```{r familiarization-w-flights}
+?flights
+glimpse(flights)
+```
+flights provides information for 336,776 flights across 19 variables.
+
+```{r familiarization-w-airports}
+?airports
+glimpse(airports)
+```
+airports provides information for 1,458 airports across 8 variables.
+
+3. Imagine you wanted to draw (approximately) the route each plane flies from its origin to its destination. What variables would you need from `flights`? What variables would you need from `airports`? Consider (in words) how you might join these two datasets.
+
+In order to create an approximate visualization for the route each plane flies from its origin to its destination, the following information would be necessary:
+
+from `flights`  :  origin & destination (both are <chr> variables)
+from `airports` :  lat & lon (both are <dbl> variables)
+
+A potential method for joining these two datasets would be to perform a left_join() on  `flights`, `airports` that retains all information for each flight in `flights`. Next, filter to just retain lat and lon <dbl> variables for each flight's origin and destination <chr> data. Draw straight lines from the origin to the destination and overlay on an appropriately scaled map.
+
+One interesting addition to this visualization would be to color each line by airline carrier to get a sense of what routes and regions each airline flies the most.
+
+### What is the geographic distribution of delays in the United States?
+
+4. Starting with the `flights` dataset, find the average delay by destination and store your results in a dataset named `delays`. Note that NA's are "contagious" so you will need to add an argument to the `mean` function.
+
+```{r average-delay-by-destination, eval = FALSE}
+delays <- flights %>%
+  group_by(dest) %>%
+  summarize(delay = mean(arr_delay, na.rm = TRUE), count=n())
+delays
+```
+
+5. Create a new dataset by joining `delays` and `airports`. Only include observations that have both delay and airport information. Note `delays` and `flights` have no variables in common so you will need to specify the variables to join using `by`.
+
+```{r delays-inner-join-airports, eval = FALSE}
+delays_airports <- delays %>%
+  inner_join(airports, by = c("dest" = "faa"))
+delays_airports
+
+left_out <- delays %>%
+  anti_join(airports, by = c("dest" = "faa"))
+left_out
+```
+
+6. Create a map to show the spatial distribution of delays. Some helper code is provided. Use an appropriate aesthetic to display the average delay for each airport.
+
+```{r Spatial-Distribution-of-Delays, eval = FALSE}
+delays_airports %>%
+  ggplot(aes(x = lon, y = lat)) +
+    borders("state") +
+    geom_point(aes(color = delay)) +
+    coord_quickmap()
+```
+
+### Is there a relationship between the age of a plane and its delays? The plane tail number is given in the `tailnum` variable in the dataset `flights`. The year the plane was manufactured is given in the `year` variable in the dataset `planes`.
+
+7. Start by finding the average arrival delay for each plane and store the resulting dataset in `plane_delays`.
+
+```{r average-arrival-delay}
+
+#plane_delays is average arrival delay for each plane
+
+plane_delays <- flights %>%
+  select(tailnum, arr_delay) %>%
+  group_by(tailnum) %>%
+  summarise(avg_arr_delay = sum(arr_delay, na.rm = TRUE) / length(arr_delay))
+
+plane_delays
+```
+
+8. Join `plane_delays` to the `planes` data using an appropriate join and then use `mutate` to create an `age` variable. Note this data is from 2013.
+
+```{r join}
+LJ_delays_planes <- left_join(plane_delays, planes)
+
+# Performed a left join on plane_delays, planes. data joined based on tailnum.
+
+view(LJ_delays_planes)
+```
+
+```{r age-variable}
+
+#mutate to find age from manufacture age
+#Only determining plane age based on year of plane commission.
+#All flights from dataset occurred in 2013
+
+plane_age <- LJ_delays_planes %>%
+  mutate(age = 2013 - year)
+
+view(plane_age)
+```
+
+```{r cleaning-dataset}
+
+#just keep two useful columns (aircraft age and average arrival delay)
+
+age_avgDelay <- plane_age %>%
+  select(age, avg_arr_delay) %>%
+  group_by(age) %>%
+  na.omit() %>%
+  summarise(avg_arr_delay_by_age = sum(avg_arr_delay) / length(avg_arr_delay))
+
+age_avgDelay
+```
+
+
+9. Finally, create an effective visualization of the data.
+
+```{r Average Delay Visualization Plot}
+
+ggplot(data = age_avgDelay,
+       mapping = aes(x = age, y = avg_arr_delay_by_age)) +
+  labs(title = "Average Arrival Delay by Aircraft Age",
+       x = "Aircraft Age",
+       y = "Average Arrival Delay") +
+  geom_bar(stat = "identity")
+
+```
+
+I ultimately decided to create a bar plot visualization. There are some outliers which are the result of small sample size n for aircrafts of age greater than ~35 years. Interesting takeaway is that average aircraft delay is not explicitly correlated with aircraft age.

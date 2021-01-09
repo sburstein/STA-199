@@ -1,0 +1,92 @@
+---
+title: "Bicycle Data Wrangling"
+author: "Scott Burstein"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+## Clone a repo + start a new project
+
+Go to the `ae04-[GITHUB USERNAME]` repo, clone it, and start a new project in RStudio. See previous labs and application exercises for more detailed instructions about cloning a repo and starting a project.
+
+### Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the email address associated with your GitHub account. 
+
+```{r eval=FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+## Practice with data wrangling
+
+```{r load-packages, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+The data set contains all North Carolina bike crash data from 2007-2014. The data was originally downloaded on September 6, 2018 and is available in the dsbox R package. 
+
+Use the code below to load the data from the .csv file
+
+```{r load-data, warning = FALSE, message = FALSE}
+ncbikecrash <- read_csv("data/ncbikecrash.csv")
+```
+
+### Part 1
+
+**Display the first 10 rows of the ncbikecrash data set.**
+
+```{r first-10}
+ncbikecrash %>%
+  slice(1:10)
+```
+
+
+### Part 2 
+
+**Filter for bike crashes in Durham County where the driver age group is 0 to 19.**
+
+```{r Durham-age-crashes}
+ncbikecrash %>%
+  filter(driver_age_group == "0-19", county == "Durham")
+```
+
+### Part 3
+
+**On which day of the week did the most bike crashes occur? Use the `count` function to get the number of bike crashes for each day (`crash_day`). Display the results in descending order.**
+
+```{r crashes-by-day}
+ncbikecrash %>%
+  count(crash_day, sort = TRUE)
+```
+
+### Part 4
+
+**Calculate the proportion of crashes that are hit and run (`hit_run`) for each hour (`crash_hour`)**
+
+
+```{r hit-run}
+ncbikecrash %>%
+  group_by(crash_hour) %>%
+  summarize(prop_hitrun = mean(hit_run == "Yes"))
+```
+
+
+### Part 5: Just for fun!
+
+**Construct an effective visualization of the data from part 4**
+
+```{r hit-run-vis}
+ncbikecrash %>%
+  group_by(crash_hour) %>%
+  summarize(prop_hitrun = mean(hit_run == "Yes"),
+            count = n()) %>%
+  ggplot(mapping = aes(x = crash_hour, y = prop_hitrun)) +
+  geom_point(aes(size = count)) +
+  labs(title = "Proportion of Hit & Runs by Crash Hour", 
+       subtitle = "Point Size Correlates to # of Crashes Per Hour",
+       x = "Hour of Day (0-23)",
+       y = "Proportion of Crashes that are Hit & Runs")
+```

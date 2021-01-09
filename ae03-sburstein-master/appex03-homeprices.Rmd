@@ -1,0 +1,137 @@
+---
+title: "Home Prices in Minneapolis"
+author: "Scott Burstein"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load-packages, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+## Clone a repo + start a new project
+
+- Go to the `ae03-[GITHUB USERNAME]` repo on GitHub
+
+- Click on the green **Code** button, **Use HTTPS**, and click on the clipboard icon to copy the repo URL.
+
+- Go to https://vm-manage.oit.duke.edu/containers and login with your Duke NetID and Password. Click to log into the Docker container **RStudio -  statistics application with Rmarkdown and knitr support**. You should now see the RStudio environment. 
+
+- Go to *File* ->  *New Project* -> *Version Control* -> *Git*. 
+
+- Copy and paste the URL of your assignment repo into the dialog box *Repository URL*. You can leave *Project Directory Name* empty. It will default to the name of the GitHub repo.
+
+- Click *Create Project*, and the files from your GitHub repo will be displayed the *Files* pane in RStudio. 
+
+- Click `appex03-homeprices.Rmd` in the *Files* pane to open the R Markdown file and start the application exercise.
+
+### Configure git
+
+Before we start the exercise, we need to configure your git so that RStudio can communicate with GitHub. This requires two pieces of information: your email address and your name.
+
+Type the following lines of code in the **Console** in RStudio filling in your GitHub username and email address associated with your GitHub account.
+
+```{r eval=FALSE}
+library(usethis)
+use_git_config(user.name= "github username", user.email="your email")
+```
+
+**RStudio and GitHub can now communicate with each other and you are ready to do the exercise!**
+
+## Practice with ggplot
+
+The data contains information about home sales in Minneapolis, Minnesota from 2010 - 2015. The data has been modified slightly for this exercise.
+
+Use the code below to load the data from the .csv file. If you get the error "could not find function "read_csv" you probably forgot to run the first code chunk that includes `library(tidyverse)`. Remember to do this first!
+
+```{r load-data, message = FALSE}
+msphomes <- read_csv("data/minneapolis_home_prices.csv")
+```
+
+### Part 0
+
+The dataset you’ll be using is called `msphomes`. Run `View(msphomes)` in the **console** to view the data in the data viewer. What does each row in the dataset represent? Each column?
+
+sales date, sales price, area, beds, baths, stories, year built, neighborhood, community
+
+### Part 1
+
+The `msphomes` data set has `r nrow(msphomes)` observations (rows).
+
+How many columns (variables) does the dataset have? Instead of hard coding the number in your answer, use the function `ncol()` to write your answer in inline code. *Hint: Use the statement above as a guide.*
+
+The `msphomes` data set has `r ncol(msphomes)` variables (columns).
+
+Knit to see the updates.
+
+### Part 2
+
+Fill in the code below to create a histogram to display the distribution of `salesprice`.  Once you have modified the code, remove the option `eval = FALSE` from the code chunk header. Knit again to see the updates.
+
+```{r plot-price}
+ggplot(data = msphomes, mapping = aes(x = salesprice)) +
+  geom_histogram()
+```
+
+### Part 3
+
+Now let's look at the distribution of price for each community (not neighborhood). To do so, we will make a faceted histogram where each facet represents a community and displays the distribution of price for that community.
+
+Fill in the code below to create the faceted histogram with informative labels. Once you have modified the code, remove the option `eval = FALSE` from the code chunk header. Knit again to see the updates.
+
+*Hint: Run `names(msphomes)` in the <b>console</b> to get a list of variable names. Be careful with spelling and capitalization*
+
+```{r plot-price-facet}
+ggplot(data = msphomes, mapping = aes(x = salesprice)) +
+  geom_histogram() +
+  facet_wrap(~community) +
+  labs(x = "Community", 
+      title = "Price Distribution of Homes", 
+      subtitle = "Faceted by Community")
+```
+
+### Part 4
+
+How would you describe the distribution of price in general? How do communities compare to each other in terms of price?
+
+Generally, price distributions seemed to be skewed heavily to the right. There are appreciable differences in the mean sales price of homes in different communities. Communities with higher mean sales price typically have less heavily skewed, wider distributions of sales price.
+
+### Part 5
+
+With your breakout room, think of a research question you can ask using the `msphomes` data. Develop an effective and well-labeled visualization that helps you answer this question. Go beyond a simple scatterplot! Consider aesthetics, faceting, annotations, etc. Have fun! 
+
+```{r community-beds-barchart}
+ggplot(data=msphomes, mapping = aes(x=beds, fill = community)) +
+  geom_bar(position="fill") +
+  coord_flip() +
+  labs(x = "Number of Beds",
+       title = "Number of Beds per Household",
+       subtitle = "Stacked by Community")
+```
+
+
+A colorful, horizontally stacked barchart representing the proportion of bed counts across the 10 communities of Minneapolis. The bar chart sacrifices inferential differences in community size (the Southwest and Nokomis communities are distinctly larger than University, Phillips, etc.) across all bed counts. However, this allows for more interesting analysis of bed counts as a proportion of total communities. For example, Calhoun-Isles has a much larger proportion of  5 bedroom homes than 3 bedroom homes. Conversely, Camden has a much larger proportion of 3 bedroom homes than 5 bedroom homes.
+
+## Knit, commit, and push
+
+1. If you made any changes since the last knit, knit again to get the final version of the AE. 
+
+2. Check the box next to each document in the Git tab (this is called "staging" the changes).  Commit the changes you made using an simple and informative message.
+
+2. Use the **green arrow** to push your changes to your repo on GitHub.
+
+3. Check your repo on GitHub and see the updated files.
+
+## Resources 
+
+- [ggplot2 reference page](https://ggplot2.tidyverse.org/reference/geom_histogram.html) 
+- [ggplot2 cheat sheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
+
+
+<br><br>
+
+<hr> 
+
+*This exercise was modified from [Data Science in Box](https://datasciencebox.org/).*
