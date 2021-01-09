@@ -1,0 +1,437 @@
+---
+title: "HW 02 - Statistical inference"
+author: "Scott Burstein"
+date: ''
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+subtitle: due Tue, Oct 20 at 11:59p
+---
+
+# Configure Git
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+# Load Packages
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+``` 
+
+```{r read-in-data, message = FALSE}
+licorice <- read_csv("data/licorice.csv")
+colnames(licorice)
+```
+
+### Exercise 1
+
+```{r ex1-rm-NA}
+mstp_30 <- licorice %>%
+  select(pacu30min_throatPain) %>%
+  filter(pacu30min_throatPain != "NA")
+```
+
+```{r ex1-null-hyp}
+mean(mstp_30$pacu30min_throatPain)
+```
+
+$H_o: \mu = 0.648$
+Null hypothesis is that the mean `pacu30min_throatPain` in all patients
+is equal to 0.648.
+
+$H_a: \mu \neq 0.648$
+Alternative hypothesis is that the mean `pacu30min_throatPain` in all patients
+is not equal to 0.648.
+
+```{r sim-based-CI}
+set.seed(123)
+n_sims <- 5000
+stat <- numeric(n_sims)
+for (i in 1:n_sims) {
+  indices <- sample(1:nrow(mstp_30), replace = T)
+  boot_mean <- mstp_30 %>%
+    slice(indices) %>%
+    summarize(boot_mean = mean(pacu30min_throatPain)) %>%
+    pull()
+  stat[i] <- boot_mean
+}
+boot_means <- tibble(stat = stat)
+```
+
+```{r ex-1-interval}
+bootstrap_interval <- boot_means %>%
+  summarize(lower = quantile(stat, 0.025),
+            upper = quantile(stat, 0.975))
+bootstrap_interval
+```
+
+The 95% confidence interval for the mean height in meters is (0.494, 0.811) 
+according to bootstrap method
+
+From simulated based approach can be 95% confident that the true average/mean 
+throat pain of patients 30 minutes after arrival in PACU is between the bounds 
+of 0.494 and 0.811 out of 10 on a numeric scale (0-10) 
+(Based on mean probabilities).
+
+```{r CLT-confidence-interval}
+t.test(licorice$pacu30min_throatPain, na.rm=TRUE, conf.level = 0.95)
+```
+The 95% confidence interval for the mean height in meters is (0.487, 0.809) 
+according to CLT.
+
+From CLT can be 95% confident that the true average/mean throat pain of patients 
+30 minutes after arrival in PACU is between the bounds of 0.487 and 0.809 out 
+of 10 on a numeric scale (0-10) (Based on mean probabilities).
+
+
+These two methods yield very similar bounds, meaning that using the central 
+limit theorem and the simulation method, we can be confident in both instances 
+that we do not reject the null hypothesis that the mean `pacu30min_throatPain` 
+in all patients is equal to 0.648, since this value lies in both 95% confidence 
+intervals constructed.
+
+### Exercise 2
+
+$H_o: \mu = 26$
+Null hypothesis is that the BMI among sample patients is not statistically 
+different in a significant way from the mean BMI among all German adults of 
+26 kg/m^2.
+
+$H_a: \mu \neq 26$
+Alternative hypothesis is that the BMI among sample patients statistically 
+differs from the mean BMI among all German adults of 26 kg/m^2 in a 
+significant manner.
+
+```{r filter-BMI}
+pre_BMI <- licorice %>%
+  select(preOp_calcBMI)
+```
+
+
+```{r ex-2_simulated-null-dist}
+set.seed(123)
+n_sims <- 5000
+stat <- numeric(n_sims)
+for (i in 1:n_sims) {
+  indices <- sample(1:nrow(pre_BMI), replace = T)
+  boot_mean <- pre_BMI %>%
+    slice(indices) %>%
+    summarize(boot_mean = mean(preOp_calcBMI)) %>%
+    pull()
+  stat[i] <- boot_mean
+}
+boot_means <- tibble(stat = stat)
+```
+
+```{r ex-2-shift}
+boot_mean <- boot_means %>%
+  summarize(mean = mean(stat)) %>% 
+  pull()
+boot_means <- boot_means %>% 
+  mutate(shifted_means = stat + (26 - boot_mean))
+```
+
+
+```{r ex-2 visualization}
+ggplot(data = boot_means, aes(x = shifted_means)) +
+  geom_histogram(
+    binwidth = 0.05, 
+    color = "darkblue", 
+    fill = "skyblue") +
+  labs(
+    x = "Mean BMI", 
+    y = "Count") +
+  geom_vline(xintercept = mean(boot_means$stat), 
+             lwd = 1, color = "red")
+```
+
+
+```{r ex-2-interval}
+bootstrap_interval <- boot_means %>%
+  summarize(lower = quantile(stat, 0.025),
+            upper = quantile(stat, 0.975))
+bootstrap_interval
+```
+
+No, there is not evidence that the mean BMI among such patients differs from the 
+mean BMI among all German adults of 26 kg/m^2, since 26 falls within the 95% 
+confidence interval of (25.04, 26.15) which the bootstrap simulation shows. 
+Thus, we fail to reject the null hypothesis that the BMI among sample patients 
+is not statistically different in a significant way from the mean BMI among all 
+German adults of 26 kg/m^2.
+
+### Exercise 3
+
+$H_o:$
+Null hypothesis is that there is not a relationship between ASA classification 
+and having any throat pain after surgery among all patients undergoing surgeries 
+that require intubation.
+
+$H_a:$
+Alternative hypothesis is that there is some relationship between ASA 
+classification and having any throat pain after surgery among all patients 
+undergoing surgeries that require intubation.
+
+```{r ex3-rm-NA}
+asa_rm_na <- licorice %>%
+  select(preOp_asa, pacu30min_throatPain) %>%
+  filter(pacu30min_throatPain != "NA")
+```
+
+```{r ex-3-table}
+ASA_any_pain <- asa_rm_na %>%
+  mutate(pain_present = ifelse(pacu30min_throatPain > 0, 1, 0))  %>%
+  select(preOp_asa, pain_present)
+ASA_any_pain
+```
+```{r pain-by-asa-summary}
+mean_pain_by_asa <- ASA_any_pain %>%
+  group_by(preOp_asa) %>%
+  summarise(mean_pain = sum(pain_present)/n()) %>%
+  ungroup()
+mean_pain_by_asa
+```
+
+```{r chisq-test}
+chisq.test(table(ASA_any_pain$preOp_asa, ASA_any_pain$pain_present))
+```
+
+The Pearson's Chi-squared test shows that p-value = 0.2985 for the α level of 
+0.05, thus we fail to reject the null hypothesis that there is not a relationship 
+between ASA classification and having any throat pain after surgery among all 
+patients undergoing surgeries that require intubation.
+
+### Exercise 4
+
+$H_o:$
+Null hypothesis is that there is not a relationship between ASA classification 
+and having any throat pain after surgery among all patients undergoing surgeries 
+that require intubation.
+
+$H_a:$
+Alternative hypothesis is that there is some relationship between ASA 
+classification and having any throat pain after surgery among all patients 
+undergoing surgeries that require intubation.
+
+```{r ex-4}
+t.test(licorice$pacu30min_throatPain ~ licorice$treat, data = licorice,
+mu = 0,
+var.equal = FALSE, alternative = "greater", conf.level = 0.95)
+```
+
+
+From the Welch Two Sample t-test performed, it is evident that the mean of 
+`pacu30min_throatPain` for patients who received licorice treatment is 
+significantly different from (less than) the mean of `pacu30min_throatPain` for 
+patients who received placebo treatment.
+
+mean of `pacu30min_throatPain` for patients who received licorice treatment 
+= 
+0.274
+
+while mean of `pacu30min_throatPain` for patients who received placebo treatment 
+= 
+1.026
+
+The p-value = 1.804e-06, which is less than α level of 0.05.
+
+Thus, we have sufficient evidence to reject the null hypothesis (that there 
+is not a relationship between ASA classification and having any throat pain 
+after surgery among all patients undergoing surgeries that require intubation).
+
+
+### Exercise 5
+
+```{r ex5-rm-NA}
+treat_rm_na <- licorice %>%
+  select(treat, pacu30min_throatPain) %>%
+  filter(pacu30min_throatPain != "NA")
+```
+
+```{r ex-5-data-wrangle}
+treatment_any_pain <- treat_rm_na %>%
+  mutate(pain_present = ifelse(pacu30min_throatPain > 0, 1, 0))  %>%
+  select(treat, pain_present)
+treatment_any_pain
+```
+```{r pain-by-treats-summary}
+mean_pain_by_treat <- treatment_any_pain %>%
+  group_by(treat) %>%
+  summarise(mean_pain = sum(pain_present)/n()) %>%
+  ungroup()
+mean_pain_by_treat
+```
+
+```{r total-prop-pain}
+total_prop_pain <- treatment_any_pain %>%
+  summarise(mean_pain = sum(pain_present)/n())
+total_prop_pain
+```
+
+From the total population, the proportion of patients who experience pain is 
+0.275.
+
+Null Hypotheses (Ho): Probability pain for licorice group = Probability pain 
+for placebo group
+
+The proportion of licorice treatment patients that had pain 30 minutes after 
+surgery is not significantly different from the proportion of placebo sugar 
+solution patients that had pain 30 minutes after surgery. 
+
+There is no measurable and thus meaningful deviation from the total proportion 
+of patients who reported pain 30 minutes after surgery. 
+
+Alternative Hypotheses (Ha): Probability pain for licorice treatment group is 
+less than Probability pain for placebo treatment group.
+
+The proportion of licorice treatment patients that had pain 30 minutes after 
+surgery is significantly lower than the proportion of placebo sugar solution 
+patients that had pain 30 minutes after surgery. 
+
+There is a measurable and thus meaningful difference in probability of 
+patients who reported pain 30 minutes after surgery for these two groups.
+
+```{r bootstrap_estimate}
+set.seed(18)
+number_sims <- 5000
+outcomes <- c("pain", "no pain")
+simulated_props <- numeric(number_sims)
+for (i in 1:number_sims) {
+  sim <- sample(outcomes, 233, prob = c(0.2746781, 1 - 0.2746781 ), replace = TRUE)
+  simulated_props[i] <- sum(sim == "pain") / length(sim)
+}
+```
+
+```{r ex5-viz}
+simulated_props_data <- tibble(props = simulated_props)
+ggplot(simulated_props_data, 
+    aes(x = props)) + 
+  geom_histogram(bins = 30) + 
+  geom_vline(xintercept = (0.1880342), color = "blue") + #licorice group
+  geom_vline(xintercept = (0.2746781), color = "red") + #total population
+  geom_vline(xintercept = (0.3620690), color = "green") + #placebo group
+  labs(x = "Simulated Proportion assuming Ho",
+       title = "Proportion of Patients who Experienced Pain")
+```
+```{r ex5-p-value-licorice}
+simulated_props_data %>%
+  filter(props <= (0.1880342)) %>%
+  summarize(p_value = n() / nrow(simulated_props_data))
+```
+p-value for licorice treatment group is significantly smaller than 0.05 which is
+sufficient evidence to reject the null hypothesis while using a  95% confidence 
+interval.
+
+```{r ex5-p-value-placebo}
+simulated_props_data %>%
+  filter(props >= (0.3620690)) %>%
+  summarize(p_value = n() / nrow(simulated_props_data))
+```
+
+Similarly, the p-value for licorice treatment group is significantly smaller 
+than 0.05 which is also sufficient evidence to reject the null hypothesis 
+when using a 95% confidence interval.
+
+### Exercise 6
+
+Yes, based on my analysis, I think that licorice gargle prior to surgery is 
+effective in reducing post-intubation sore throat. 
+
+From the Welch Two Sample t-test in exercise 4, it is evident that the mean of 
+`pacu30min_throatPain` for patients who received licorice treatment is 
+significantly lower than the mean of `pacu30min_throatPain` for patients who
+received placebo treatment.
+
+In addition, exercise 5 proved that the proportion of licorice treatment 
+patients that had pain 30 minutes after surgery is significantly lower than the 
+proportion of placebo sugar solution patients that had pain 30 minutes after 
+surgery. 
+
+From these statistical tests, it is clear that there is a measurable and thus 
+meaningful deviation in both prevalence and intensity of pain between the 
+licorice treatment patients and the placebo treatment patients 30 minutes after 
+surgery.
+
+***
+**For Ex. 7-12 Given That:**
+The mean BMI among patients receiving licorice solution was 25.6 kg/m^2 and the 
+mean BMI among patients receiving sugar solution placebo was 25.6 kg/m^2. 
+In assessing whether there is a difference in mean BMI between the two treatment 
+groups using a CLT-based approach, the researchers obtained a p-value of 0.925.
+
+### Exercise 7
+
+**Statement:**
+If there is truly no difference in mean BMI between these two groups, then the 
+probability of seeing a difference in BMI as large as our observed difference 
+or even larger is approximately 0.925.
+
+TRUE
+
+### Exercise 8
+
+**Statement:**
+Assuming α = 0.05, then our p-value of 0.925 would be strong evidence that there 
+is no difference in the mean BMI between the two treatment groups.
+
+TRUE
+
+When the  p-value is greater than the stated alpha level, we fail to reject the 
+null hypothesis. Hence, in this instance, where p-value is 0.925 and α = 0.05,
+we have sufficient evidence to NOT reject the null hypothesis, that there 
+is no difference in the mean BMI between the two treatment groups. This is,
+in a logical sense, effectively supporting the null hypothesis.
+
+### Exercise 9
+
+**Statement:**
+The probability that we have made a type 2 error is less than 10%.
+
+FAlSE
+
+A type II error occurs when we fail to reject a null hypothesis that is false.
+Beta (prob type 2 error = 1-power of test), can not be extrapolated from p-value 
+alone (all that is given).
+
+### Exercise 10
+
+**Statement:**
+If we were to repeatedly construct 95% confidence intervals for the difference 
+in mean BMI in the same way from the original population, then approximately 
+95% of those intervals would truly contain the true population difference in 
+means.
+
+FALSE
+
+We are 95% confident that the true difference in mean BMIs lies within the 
+bounds for each 95% confidence interval constructed for the difference in mean 
+BMIs. However, we cannot conclude that 95% of the constructed intervals 
+contain the true difference in mean BMIs.
+
+### Exercise 11
+
+**Statement:**
+With our given p-value, we know for sure that constructing a 95% confidence 
+interval for the mean difference in BMIs would definitely contain 0.
+
+FALSE
+
+We cannot be certain that the 95% confidence interval contains 0.
+By definition, we can only be 95% confident that the true difference lies within
+the bounds specified by the 95% confidence interval. Furthermore, since the 
+p-value is 0.925, it is possible that events as or more extreme as the null 
+hypothesis occur. We consequently cannot be certain that the 95% confidence 
+interval contains 0.
+
+### Exercise 12
+
+**Statement:**
+If we instead found a p-value of 0.021, then at the α = 0.05 level, we would 
+have enough evidence to conclude that there is a difference in mean BMI between 
+the two treatment groups.
+
+TRUE

@@ -1,0 +1,120 @@
+---
+title: "AE 13"
+subtitle: "Car Prices"
+date: "Due: October 16, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+```{r load-packages, include = FALSE}
+library(tidyverse)
+library(broom)
+```
+
+The dataset `car_prices.csv` contains attributes of cars offered for sale on 
+cars.com. The data was collected in 2017 and is taken from the `Stat2Data` 
+package.
+
+- `type`: Model (Accord, Maxima, Mazda6)
+- `age`: Age of the used car (in years)
+- `price`: Price (in thousands of dollars)
+- `mileage`: Previous miles driven (in thousands of miles)
+
+```{r load-data, message = FALSE}
+car_prices <- read_csv("data/car_prices.csv")
+```
+
+
+## Price and Mileage
+
+Consider a regression model with the response `price` and a single predictor 
+`mileage`. 
+
+1. Create a scatterplot of price and mileage.
+
+```{r scatterplot}
+ggplot(car_prices,
+       aes(x = mileage, y = price)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+```
+
+
+2. Use appropriate functions in `R` to find the fitted model and display the 
+results in tidy format. Write out the equation of the fitted model and visualize
+the linear model on your scatterplot.
+
+```{r linear-model}
+m_pr_mile <- lm(price ~ mileage, data = car_prices)
+tidy(m_pr_mile) %>%
+  select(term, estimate)
+```
+$$\widehat{Price} = 21.4 - 0.128 \times Mileage$$
+
+3. Carefully interpret the slope and intercept in the context of the problem.
+
+- **Slope**: For every additional thousand miles on the used car, the price is 
+expected to decrease, on average, by $128.
+
+- **Intercept**: Used cars that have 0 miles on them are expected to cost 
+$21,400, on average.
+
+4. What is the predicted selling price of a car with 50,000 miles?
+
+```{r pred}
+21.4 - 0.128 * 50
+```
+
+
+5. Suppose my aging Accord has 225,000 miles. Is it appropriate to use this 
+model to make a prediction for the selling price? Why or why not?
+
+## Price and Model
+
+No, because 225,000 is beyond range of data and the curve appears to flatten out near the end of x-bound (upper end).
+
+Consider a regression model with the response `price` and the categorical 
+predictor `type` (Accord, Maxima, Mazda6).
+
+6. Use appropriate functions in `R` to find the fitted model and display the 
+results in tidy format. Write out the equation of the fitted model.
+
+```{r fitted-model-car-type}
+m_pr_type <- lm(price ~ type, data = car_prices)
+tidy(m_pr_type) %>%
+  select(term, estimate)
+```
+
+$$\widehat{Price} = 14.3 + 1.19 \times typeMaxima - 2.77 \times type Mazda6$$
+Maxima:
+$$\widehat{Price} = 14.3 + 1.19$$
+Mazda:
+$$\widehat{Price} = 14.3 - 2.77$$
+Honda:
+$$\widehat{Price} = 14.3$$
+
+7. Carefully interpret the intercept and slope(s) in the context of the problem.
+
+- **Slope Maxima**: Maximas are expected, on average, to cost $1,187 more than 
+Accords.
+
+- **Slope Mazda6**: Mazda6's are expected, on average, to cost $2,773 less than 
+Accords.
+
+- **Intercept**: Accords are expected to cost $14,277
+
+8. How is the categorical variable `type` included in the model?
+
+As two indicator variables, with Accords as the reference level. More generally, 
+for a categorical variable with $k$ levels, we include $k-1$ indicator 
+variables.
+
+9. What are possible limitations of your two regression models?
+
+- Possible concerns about non-linearity.
+- We fit separate models, but really we should fit a single model that includes 
+**both** mileage and type as predictors.
+- Is this data representative? If not a random sample, we can't generalize.
+- What happens when a car is sold?

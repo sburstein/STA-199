@@ -1,0 +1,138 @@
+---
+title: "AE 12"
+subtitle: "Political Testing"
+date: "Due: October 9, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+## Clone a repo + start a new project
+
+Go to the `ae12-[GITHUB USERNAME]` repo, clone it, and start a new project in 
+RStudio. See the earlier labs and application exercises for detailed 
+instructions. 
+
+Also remember to configure git.
+
+```{r load-packges, message = FALSE}
+library(tidyverse)
+```
+
+## Sex and Political Affiliation
+
+Knit your document to html to see the table below, which contains data from the 
+2000 General Social Survey.  Sex and political party affiliation are 
+cross-classified and you would like to test for independence of sex and party 
+affiliation. Use R as a calculator to answer the following questions.
+
+|           | Democrat | Independent | Republican | Total |
+| --------- | -------- | ----------- | ---------- | ----- |
+| Female    | 762      | 327         | 468        | 1557  |
+| Male      | 484      | 239         | 477        | 1200  |
+| Total     | 1246     | 566         | 945        | 2757  |
+
+1. What is the expected count of Republican males under the null hypothesis of 
+independence?
+
+```{r ex-1}
+#expected republican count:
+(945 / 2757) * (1200 / 2757) * 2757
+
+#alternative method:
+(1200 * 945) / 2757
+```
+
+
+2. What is the contribution of the Republican male cell to the test statistic? 
+
+```{r ex-2}
+observed <- 477
+expected <- (1200 / 2757) * 945
+
+#chi-squared test statistic
+(observed - expected)^2 / expected
+```
+
+If chi-squared is 0, summary statistic is what was expected based on observed. 
+If large enough, sufficient to reject null hypothesis.
+
+3. What is the distribution of the test statistic? 
+
+$\chi^2$ with 2 degrees of freedom.
+
+4. Suppose the test statistic is 30.1. Use the `pchisq` function to determine 
+the p-value and statistical decision.
+
+```{r ex-4}
+
+pchisq(30.1, df = 2)
+
+#correct p-values
+1 - pchisq(30.1, df = 2)
+
+pchisq(30.1, df = 2, lower.tail = FALSE)
+
+```
+As or more favorable than null hypothesis is small region to right. These are 
+bigger values than what was observed.
+
+## Direction of Country
+
+Economist / YouGov surveyed 1,115 U.S. adult citizens between November 3 and 
+November 5, 2019.  They asked "Would you say things in this country today are 
+generally headed in the right direction, or are they off on the wrong track?" 
+and also asked the respondent to report their family income.
+
+```{r read-in-data}
+direction_of_country <- read_csv("data/direction.csv")
+```
+
+The file `direction.csv` contains each each individual's family income and 
+response to this question.
+
+5. Summarize your data in a table and comment on the relationship, reporting 
+numerical summaries. What is going on here?
+
+```{r summarize}
+table(direction_of_country$income, direction_of_country$direction)
+```
+
+6. State the appropriate null and alternative hypotheses.
+
+$H_o:$ Income and opinion about direction of the country are independent.
+
+$H_a:$ Income and opinion about direction of the country are not independent. 
+
+7. Use an appropriate function to find the table of expected counts. Hint: Look 
+at the documentation.
+
+```{r ex-7}
+x <- table(direction_of_country$income, direction_of_country$direction)
+
+chisq.test(x)$expected
+chisq.test(x)$observed
+
+chisq.test(x)
+```
+
+
+8. Use an appropriate function to find the $\chi^2$ test statistic.
+
+```{r ex-8}
+chisq.test(x)
+```
+
+
+9. Report your p-value and a conclusion in the context of the problem.
+
+We reject the null hypothesis of independence. We have convincing evidence to 
+suggest that family income and opinion about direction of the country are not 
+independent. Our test statistic is 34.994 and our $p$-value is less than 0.001.
+
+10. Comment on any limitations of this analysis.
+
+Rows of data categories are not ordered by nominal value. The data is not 
+structured according to numeric properties of data, but rather split into 
+arbitrary categories and not ordered with valid relationships.
+

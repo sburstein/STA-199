@@ -1,0 +1,208 @@
+---
+title: "In-Class Notes 9-24"
+subtitle: "Hypothesis Testing"
+author: "Scott Burstein"
+date: "9-24"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Get started
+
+### Clone a repo + start a new project 
+
+Go to the `inclass02-[GITHUB USERNAME]` repo, clone it, and start a new project in RStudio. See earlier labs and application exercises for more detailed instructions.
+
+### Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name = "sburstein", user.email ="scott.burstein@duke.edu")
+```
+
+```{r load-packages, message = FALSE}
+library(tidyverse)
+```
+
+
+### When does summer end?
+
+Between Aug 30 and Sep 1 YouGov took a random sample of 1,498 adult Americans 
+and asked "When do you think summer ends?"
+
+689 of the respondents (46\%) answered September 21.
+
+1) Perform a hypothesis test to determine if less than half of adult Americans 
+think that summer ends on September 21.
+
+Ho: p = 0.50
+Ha: p < 0.50
+
+```{r generate-null-distribution}
+set.seed(283)
+number_sims <- 10000
+outcomes <- c("Sep 21", "Not Sep 21")
+
+stat <- numeric(number_sims)
+
+for(i in 1:number_sims) {
+  sim <- sample(outcomes, 1498, prob = c(.5, .5), replace = TRUE)
+  stat[i] <- sum(sim == "Sep 21") / length(sim)
+}
+
+simulated_props_data<- tibble(stat)
+```
+
+```{r generate-viz}
+ggplot(simulated_props_data,
+       aes(x = stat)) +
+  geom_histogram(bins = 50) +
+  geom_vline(xintercept = (689 / 1498))
+```
+
+```{r pvalue}
+simulated_props_data %>%
+  filter(stat <= (689 / 1498)) %>%
+  summarize(p_value = n() / nrow(simulated_props_data))
+```
+
+2) What does the `set.seed` function in the above code chunk do? Why is it 
+important? What would happen if you didn't use this function?
+
+`set.seed` instructs the computer to start random sampling from the same point in the data set. Thus, setting a seed makes the simulated_props_data have the same values every time. It is important to use for reproducibility so when run at different instances, the resulting plots look the same, since the samples taken are the same.
+
+3) What does the `sample` function in the above code chunk do?
+
+`sample` creates a sample instance for the simulation and stores the resulting data in variable sim.
+
+4) Try experimenting with `set.seed` and `sample` to get a better idea of what 
+`set.seed` does. Check and try varing the arguments of `sample` by pulling up
+the documentation.
+
+```{r demo-sample}
+set.seed(44)
+sample(1:6, 2, replace = TRUE)
+```
+
+
+### P-value Interpretation
+
+5) Identify the following statements as TRUE or FALSE and carefully justify your
+reasoning for FALSE answers.
+
+a)  p-values can indicate how incompatible the data are with some specified 
+model.
+
+TRUE
+
+b) The p-value is a probability.
+
+TRUE. p-value is probability of having data as or more extreme. 
+
+c) A p-value of 0.01 means the null hypothesis has a 1% chance of being true.
+
+FALSE. Has no information regarding validity of null hypothesis.
+
+d)  A p-value of 0.025 means the alternative hypothesis has a 97.5% chance of being true.
+
+FALSE. Does not tell what probability true the hypothesis is.
+
+e)  Policymakers should base their decisions based solely on whether the p-value passes a specific threshold.
+
+FALSE. Many other factors play in. Context and nuance needed for inference.
+
+f)  The p-value measures the size of an effect.
+
+FALSE. p-value is probability of observing sample data as or more extreme given the hypothesis is null. With large datasets, small effects can be significant. Converse is also true. Can also have dramatic, large effect on small sample that is not significant.
+
+g)  The p-value is calculated assuming the alternative hypothesis is true.
+
+FALSE. p-value is calculated assuming the null hypothesis is true.
+
+h)  p-values and related analyses can be reported selectively.
+
+FALSE. Do not cherry-pick values. Happens when running tests with small sample sizes.
+
+i)  The smaller the p-value, the stronger the evidence against the null hypothesis.
+
+TRUE. Smaller p-value indicates stronger evidence against the null hypothesis.
+
+j)  The p-value is the probability of obtaining data that is as or more 
+supportive of the alternative hypothesis than the data that we observed, when 
+the null hypothesis is correct.
+
+TRUE. By definition.
+
+k)  A p-value > 0.05 means that the probability is greater than 1 in 20 that a difference this large could occur by chance alone.
+
+FALSE. Missing "this large OR LARGER". Sampling could be as OR MORE extreme.
+
+l)  We reject the null hypothesis if the significance probability is less than $\alpha$.
+
+TRUE. 0.05 chosen as alpha means we reject when probability is less than this alpha value.
+
+m)  A p-value < 0.01 means that we have a relationship of practical importance.
+
+FALSE. Relationship of practical importance is akin to large effect size. P-value does not tell information about this. Only information about chance.
+
+n)  Proper inference requires full reporting and transparency.
+
+TRUE. Full reporting of alpha, data collection methods, etc. vital to transparency.
+
+o)  The smaller the p-value, the greater the statistical incompatibility of the
+data with the null hypothesis (assuming the underlying assumptions used to 
+calculate the p-value hold).
+
+TRUE.
+
+p)  Smaller p-values imply the presence of larger / more important effects.
+
+FALSE.
+
+q)  Using $\alpha$ = 0.10 a p-value of 0.075 means we should reject the null 
+hypothesis.
+
+TRUE. p-value less than alpha so reject the null hypothesis.
+
+r)  The p-value is also called the significance probability.
+
+TRUE.
+
+### Probability Review
+
+5) Use the `titanic.csv` data to determine if sex and survival status are 
+independent.
+
+We have a dataset here so do not do these types of analysis by hand.
+
+```{r read-in-titanic, message = FALSE}
+titanic <- read_csv("data/titanic.csv")
+```
+
+```{r review-probability}
+#conditional probabilities
+# P(survival | sex)
+#question is does P(survivial | sex) = P(survival)?
+# -> If True, independent events. If not, dependent events.
+
+#P(survived)
+titanic %>%
+  count(Survived) %>%
+  mutate(prob = n / sum(n))
+
+#P(survived | sex)
+titanic %>%
+  group_by(Sex) %>%
+  count(Survived) %>%
+  mutate(prob = n / sum(n))
+```
+
+P(survived) = 0.386
+
+P(survived | male) = 0.190
+P(survived | female) = 0.742
+
+Not independent events!

@@ -1,0 +1,317 @@
+---
+title: "Exam 01"
+subtitle: "STA 199, Fall 2020, Duke University"
+author: "Scott Burstein"
+output: html_document
+---
+
+# Setup
+
+```{r load-packages, message = FALSE, warning = FALSE}
+library(tidyverse) 
+``` 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name = "sburstein", user.email ="scott.burstein@duke.edu")
+```
+
+```{r read-in-data, message = FALSE}
+beijing <- read_csv("data/beijing.csv")
+```
+
+Remember to configure Git, include your name in the "author" section of the header,
+label all code chunks, and commit regularly at appropriate times!
+
+# Exercise 1
+
+```{r ex1-season}
+beijing <- beijing %>%
+  mutate(season = case_when(month==12 | month==1 | month==2 ~ "winter",
+                            month==3 | month==4 | month==5 ~ "spring",
+                            month==6 | month==7 | month==8 ~ "summer",
+                            month==9 | month==10 | month==11 ~ "autumn"))
+```
+Sources Cited: 
+https://dplyr.tidyverse.org/reference/case_when.html
+https://stackoverflow.com/questions/38649533/case-when-in-mutate-pipe
+
+# Exercise 2
+
+```{r ex2-percent-rain}
+beijing <- beijing %>%
+  mutate(did_it_rain = case_when(RAIN==0.0 ~ 0,
+                                 RAIN > 0 ~ 1))
+beijing %>%
+  group_by(season) %>%
+  summarise(percent_days_rain = (sum(did_it_rain)/n())*100) %>%
+  summarise(season, percent_days_rain = round(percent_days_rain,1)) %>%
+  ungroup()
+```
+Sources Cited:
+https://dplyr.tidyverse.org/reference/group_by.html
+https://stackoverflow.com/questions/39248216/counting-how-many-times-a-condition-is-true-within-each-group
+https://stackoverflow.com/questions/25869378/what-does-n-n-mean-in-r#:~:text=This%20is%20from%20the%20dplyr,sequentially%20rather%20then%20nesting%20them.
+
+# Exercise 3
+
+Events are deemed independent if the outcome of one does not affect the outcome of another event.
+
+```{r rain-season-independence}
+# P(A|B) = P(A)
+beijing %>% summarise(annual_percent_days_rain = (sum(did_it_rain)/n())*100) %>%
+    sprintf(fmt = '%#.3f')
+#4.133% probability rain does NOT take into account season (annual percentage).
+```
+Days with rain and season are not independent events, since the probability of rain changes substantially between the four seasons. If they were independent events, then all four seasons would have rain probabilities equal to the `annual_percent_days_rain` percentage of 4.133%. Hence, probability of rain and season are dependent, which makes sense since weather is dependent on the season.
+
+# Exercise 4
+
+$$P(G|W) = \dfrac{P(W|G)P(G)}{P(W|G)P(G) + P(W|NG)P(NG)}$$
+G = good air quality
+NG = not good air quality (acceptable or dangerous)
+W = windy day
+
+Known Variables:
+P(W|G) = 0.24
+P(G) = 0.46
+
+However, it is challenging to calculate the following necessary value explicitly:
+P(W|NG) = P(W&NG)/P(NG)
+
+Thus, I will turn to another method.
+
+```{r air-quality-prob-expressions}
+#P(good air quality | windy day) = P(good air quality & windy day) / P(windy day)
+
+#P_W is unknown Probability of windy day, which is calculated in the expression.
+
+P_WG = 0.24 #Percent of good air quality days that are windy.
+P_G = 0.46 #Percent of days may be classified as good.
+
+P_WA = 0.09 #Percent of acceptable air quality days that are windy.
+P_A = 0.24 #Percent of days may be classified as acceptable.
+
+P_WD = 0.04 #Percent of dangerous air quality days that are windy.
+P_D = 0.30 #Percent of days may be classified as dangerous.
+
+P_W <- P_WG*P_G + P_WA*P_A + P_WD*P_D
+P_W
+```
+$$P(G|W) = \dfrac{P(WG)}{P(W)}$$
+```{r air-quality-probability-result}
+P_G_and_W = P_WG * P_G
+P_GoodQ_given_Wind <- P_G_and_W / P_W
+P_GoodQ_given_Wind
+```
+The probability that a randomly selected windy day has good air quality is 0.767.
+
+Class Notes Cited: https://sta199-fa20-003.netlify.app/slides/lec-slides/08-bayes-rule.html#28
+
+# Exercise 5
+
+```{r highest-PM2.5-values}
+beijing %>%
+  select(year, month, PM2.5) %>%
+  top_n(3)
+```
+
+# Exercise 6
+
+```{r working-hours-air-q-assessment}
+beijing <- beijing %>%
+  mutate(working_hour = case_when(hour >= 8 & hour < 18 ~ TRUE, #data collected during working hours
+                                 hour < 8 | hour >= 18 ~ FALSE))#data collected outside working hours
+beijing %>%
+  select(working_hour, SO2, NO2, CO) %>%
+  group_by(working_hour) %>%
+  summarise(mean_SO2 = mean(SO2), mean_NO2 = mean(NO2), mean_CO = mean(CO)) %>% #summarize with new mean statistics using mean()
+  ungroup()
+
+```
+
+Based on the data and resulting summary statistics, the claim that the average sulfur dioxide (SO2) concentration is higher during working hours than during non-working hours is true. However, the claims that average nitrogen dioxide (NO2) and carbon monoxide (CO) concentrations are higher during working hours than during non-working hours are both false.
+
+By grouping the data into working hours (defined as between 8AM & 6PM) and non-working hours, and viewing mean summary statistics for each group across all three compounds, it is evident that during working hours, SO2 levels are on average greater than during non-working hours: 
+
+SO2: 19.0 > 17.2 µg/m^3 .
+
+Additionally, it is also evident that the mean NO2 and CO levels decreased significantly during working hours:
+
+NO2: 46.7 < 65.9 µg/m^3
+CO: 1183.0 < 1439.1 µg/m^3
+
+# Exercise 7
+
+```{r PM2.5-viz}
+#`month.abb[month]` is work around to get numeric month variable into categorical type
+#reorder(______,month) orders x-axis by month ascending
+beijing %>%
+  ggplot(aes(x=reorder(month.abb[month], month), y=PM2.5, fill=season))+
+  geom_bar(stat="identity")+
+  labs(x="Month",
+       y="PM2.5 Concentration (µg/m^3)",
+       title="Average PM2.5 Concentration by Month",
+       subtitle="Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing")
+```
+Sources Cited: http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization#barplot-with-a-numeric-x-axis
+https://stackoverflow.com/questions/22058393/convert-a-numeric-month-to-a-month-abbreviation
+https://www.rpubs.com/dvdunne/reorder_ggplot_barchart_axis#:~:text=A%20simple%20way%2C%20to%20reorder,the%20bars%20in%20descending%20order.
+
+The distribution of PM2.5 concentrations varies significantly by month. It is
+evident that the PM2.5 concentration is lowest in the summer season, rises
+throughout autumn, and peaks in the winter. Additionally, it seems as though
+March is unusually high relative to February and April average readings. There
+is a pattern of increased PM2.5 concentration throughout the colder months
+(October-March) and lower concentrations throughout the warmer months
+(April-September). Values between April and September are approximately 
+7,500 µg/m^3 on average. The highest average month is December,
+with a value of approximately 16,750 µg/m^3.
+
+# Exercise 8
+
+I will assess the concentrations of all six compounds for which data was 
+recorded (PM2.5, PM10, SO2, NO2, CO, O3) and see how mean concentrations 
+change throughout the day for each compound.
+
+```{r Compounds-Concentrations-by-hour-data}
+comps_by_hour <- beijing %>%
+  select(hour, PM2.5, PM10, SO2, NO2, CO, O3) %>%
+  group_by(hour) %>%
+  summarise(mean_PM2.5 = mean(PM2.5), mean_PM10 = mean(PM10), 
+            mean_SO2 = mean(SO2), mean_NO2 = mean(NO2), mean_CO = mean(CO), 
+            mean_O3 = mean(O3)) %>%
+  ungroup()
+comps_by_hour
+```
+
+Relevant data in table form, ready for ggplot. Represents hour of day and mean 
+concentration for each compound at the given hour. The mean thus represents the 
+average for each compound concentration measurement at the specified hour.
+
+```{r PM2.5_viz}
+PM2.5_graph <- comps_by_hour %>%
+  ggplot(aes(x = hour, y = mean_PM2.5)) +
+         labs(title = "Average PM2.5 Concentration by Hour",
+              subtitle = "Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing",
+              x = "Hour of Day (0-23)",
+              y = "Mean PM2.5 Concentration (µg/m^3)") +
+  
+  geom_line(color = "blue") +
+
+  scale_x_continuous(breaks=seq(0,23,1))+
+  theme_bw()
+PM2.5_graph
+```
+```{r PM10_viz}
+PM10_graph <- comps_by_hour %>%
+  ggplot(aes(x = hour, y = mean_PM10)) +
+         labs(title = "Average PM10 Concentration by Hour",
+              subtitle = "Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing",
+              x = "Hour of Day (0-23)",
+              y = "Mean PM10 Concentration (µg/m^3)") +
+  
+  geom_line(color = "red") +
+
+  scale_x_continuous(breaks=seq(0,23,1))+
+  theme_bw()
+PM10_graph
+```
+```{r SO2_viz}
+SO2_graph <- comps_by_hour %>%
+  ggplot(aes(x = hour, y = mean_SO2)) +
+         labs(title = "Average SO2 Concentration by Hour",
+              subtitle = "Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing",
+              x = "Hour of Day (0-23)",
+              y = "Mean SO2 Concentration (µg/m^3)") +
+  
+  geom_line(color = "green") +
+
+  scale_x_continuous(breaks=seq(0,23,1))+
+  theme_bw()
+SO2_graph
+```
+```{r NO2_viz}
+NO2_graph <- comps_by_hour %>%
+  ggplot(aes(x = hour, y = mean_NO2)) +
+         labs(title = "Average NO2 Concentration by Hour",
+              subtitle = "Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing",
+              x = "Hour of Day (0-23)",
+              y = "Mean NO2 Concentration (µg/m^3)") +
+  
+  geom_line(color = "orange") +
+
+  scale_x_continuous(breaks=seq(0,23,1))+
+  theme_bw()
+NO2_graph
+```
+```{r CO_viz}
+CO_graph <- comps_by_hour %>%
+  ggplot(aes(x = hour, y = mean_CO)) +
+         labs(title = "Average CO Concentration by Hour",
+              subtitle = "Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing",
+              x = "Hour of Day (0-23)",
+              y = "Mean CO Concentration (µg/m^3)") +
+  
+  geom_line(color = "purple") +
+
+  scale_x_continuous(breaks=seq(0,23,1))+
+  theme_bw()
+CO_graph
+```
+```{r O3_viz}
+O3_graph <- comps_by_hour %>%
+  ggplot(aes(x = hour, y = mean_O3)) +
+         labs(title = "Average O3 Concentration by Hour",
+              subtitle = "Data from 2013-2017, Weather Station at Nongzhanguan in Chaoyang District, Beijing",
+              x = "Hour of Day (0-23)",
+              y = "Mean O3 Concentration (µg/m^3)") +
+  
+  geom_line(color = "pink") +
+
+  scale_x_continuous(breaks=seq(0,23,1))+
+  theme_bw()
+O3_graph
+```
+
+Sources Cited:
+http://www.cookbook-r.com/Graphs/Axes_(ggplot2)/
+http://www.sthda.com/english/wiki/ggplot2-line-plot-quick-start-guide-r-software-and-data-visualization
+http://www.cookbook-r.com/Graphs/Facets_(ggplot2)/
+
+
+I chose to analyze the concentrations of all six compounds that data 
+was recorded for (PM2.5, PM10, SO2, NO2, CO, and O3) in the `beijing` dataset.
+I calculated the average concentration in µg/m^3 for each hour of the day that
+data was available for (all recordings were grouped by hour and mean was
+subsequently calculated). Hence, each line plot represents a line connecting
+the 24 average concentration measurements for each hour of the day for each
+compound.
+
+Viewing these six visualizations, it is apparent that the concentrations of
+these six compounds vary differently throughout the day in Beijing. For example,
+some compounds drop considerably during the day and are highest throughout the
+night (PM2.5, PM10, NO2, and CO). On the other hand, some compounds spike
+throughout the day - SO2 specifically spikes around 9:00 and 15:00. Ozone (O3) 
+follows an interesting trend of increasing dramatically (and at a fixed rate) 
+between 8:00 and 14:00.
+
+It is important to note that these visualizations do not account for seasonal
+changes in concentrations or provide context for change that has occurred in
+mean concentrations over the years which data was collected in (2013-2017).
+
+It is plausible and quite likely that both of these variables (season and year)
+impact the concentrations of some compounds. Additionally, it is challenging to
+infer whether or not human production or action affects the underlying trends.
+For example, a compound that typically spikes during the night (NO2) may be
+heavily impacted by industrial pollution throughout the day. There are many
+confounding variables regarding the climate, weather, and atmospheric science
+that play essential roles in the study of these compounds and their 
+concentrations in the Beijing atmosphere.
+
+This style of comparing all six visualizations de-emphasizes the specific 
+concentration values in µg/m^3, as these are often properties of the gas and 
+its role in the environment, but rather emphasizes how the relative 
+concentration for each compound fluctuates throughout the duration of a day.
+
+

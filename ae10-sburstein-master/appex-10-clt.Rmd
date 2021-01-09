@@ -1,0 +1,137 @@
+---
+title: "AE 10"
+subtitle: "Data Ethics & Bone density"
+date: "Due: September 30, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+## Data Ethics Module
+
+For today's tasks you determined (part of) what Google and Facebook know about 
+you. You are welcome (but not obligated!) to share these results with your
+breakout room / the class.
+
+Discuss the questions below with your breakout rooms and write down your 
+thoughts in the spaces provided.
+
+### Discussion Question 1
+
+What do Google and Facebook know about you? How accurate is the information?
+Were you surprised by any of the results?
+
+Google and Facebook both keep track of my interests through my usage of their
+respective apps. Google, for example, states that "Ads are based on personal 
+info you've added to your Google Account, data from advertisers that partner 
+with Google, and Google's estimation of your interests". It was surprising to 
+see a list of at least 100 topics that Google has recorded me having a 
+preference towards. Many, of them, I agree with, like "Auto Racing" and 
+"Comedy Films" for example. However it was surprising to see some other topics,
+like "Fast Food" and "Greeting Cards", which I never would have labeled as 
+some of my interests. I definitely want to learn more about how Google and 
+Youtube tracks my information and behavior across its domain.
+
+Facebook has a similar page designed to keep track of my interests based on 
+advertisements I engage with and Facebook pages I visit. Facebook divides the 
+data into more detailed categories, such as "Business and industry" and "News 
+and entertainment".
+
+### Discussion Question 2
+
+Were you aware this information was being collected? How do you feel about this?
+Relate these results and your feelings to our data ethics discussion last week.
+
+I was aware that this information was being collected. I feel fairly comfortable 
+with this reality, however it is alarming to know how detailed the information 
+which Google and Facebook keep about me is. I also believe they keep much more 
+data that is perhaps hidden or harder for me as the user to view. The consistent 
+breach of my digital privacy is unfortunately the price I am willing to pay for 
+free access to the services offered by Google and Facebook.
+
+### Discussion Question 3
+
+On the lecture slides there are ad personalization results for two individuals. 
+What can you tell me about their backgrounds basely solely on this information?
+Who is each person?
+
+The first is a male in his 40s, and the second is a female from St. Paul, 
+Minnesota. They also have different interests. Based on this, I infer that the 
+first set represents my professor, Dr. Bob Eisinger, and the second represents 
+his wife.
+
+## Normal Distribution
+
+Suppose the mean bone density for a 65-year old white woman is normally 
+distributed with mean 809 mg/cm3 and standard deviation of 140 mg/cm3 (these are 
+actually pretty accurate numbers).
+
+### Exercise 1
+
+What bone densities correspond to the 10th, 50th, and 99th percentiles of
+this distribution?
+
+```{r ex-1}
+qnorm(.1, mean = 809, sd = 140)
+qnorm(.5, mean = 809, sd = 140) #0.5 represents mean
+qnorm(.99, mean = 809, sd = 140)
+```
+
+### Exercise 2
+
+The densities of two different types of woods are below:
+
+- Plywood: 540 mg/cubic centimeter
+- Mahogany: 710 mg/cubic centimeter
+
+What is the probability that a random 65-year old white woman has bones less
+dense than each of these woods?
+
+```{r ex-2}
+#prob less dense than Plywood
+pnorm(540, mean = 809, sd = 140)
+#prob less dense than Mahogany
+pnorm(710, mean = 809, sd = 140, lower.tail = FALSE)
+
+### (VALUE - AVERAGE) / SD
+z <- (540 - 809) / 140
+pnorm(z)
+```
+
+### Exercise 3
+
+What is the probability that, for a *group* of 10 randomly sampled 65-year old
+white women, the mean bone density of the *group* is less dense than these woods?
+
+Can use statistics even without knowledge of sample size since normal 
+distribution properties still apply.
+
+```{r ex-3}
+
+population_mean <- 809
+standard_error <- 140 / sqrt(10)
+
+pnorm(540, mean = population_mean, sd = standard_error)
+
+# SAMPLE MEAN ~ N(MU, SIGMA / SQRT(N))
+
+#prob group density less than Plywood
+pnorm(540, mean = 809, sd = 140 / sqrt(10))
+#prob group density less than Mahogany
+pnorm(710, mean = 809, sd = 140 / sqrt(10))
+```
+
+Large N -> Smaller spread of sample mean
+
+### Exercise 4
+
+Explain the differences between your answers in Exercise 2 and 3.
+
+The probabilities in ex-3 are substantially smaller than the probabilities in 
+ex-2, which makes sense since group statistics sample means are normally 
+distributed (individual measures are as well), however the variability in the 
+group values are far less than the variability of single observations.
+
+Less variability in sample mean when take a sample size of 10 rather than 1. Are 
+dealing with distribution of sample means, which has normal distribution 
+properties according to the Central Limit Theorem.

@@ -1,0 +1,132 @@
+---
+title: "In-Class Notes 10-1"
+subtitle: "Central Limit Theorem"
+author: "Scott Burstein"
+date: "10-1"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Get started
+
+### Clone a repo + start a new project 
+
+Go to the `inclass03-[GITHUB USERNAME]` repo, clone it, and start a new project in RStudio. See earlier labs and application exercises for more detailed instructions.
+
+### Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name = "sburstein", user.email ="scott.burstein@duke.edu")
+```
+
+We will be using the `pokemon` dataset, which contains information about 45
+randomly selected Pokemon (from all generations). You may load in the dataset
+with the following code (be sure to set `eval` to be `TRUE` in the following R
+chunk).
+
+```{r load-data, message = FALSE, eval = TRUE}
+library(tidyverse)
+pokemon <- read_csv("data/pokemon.csv")
+```
+
+### Exercise 1
+
+Construct and interpret a 95% confidence interval for the mean height in meters 
+(`height_m`) of Pokemon species by using the Central Limit Theorem.
+
+```{r confidence-interval}
+t.test(pokemon$height_m, conf.level = 0.95)
+```
+The 95% confidence interval for the mean height in meters is (0.798, 1.891).
+
+Are 95% confident that the true average/mean height of Pokemon species is 
+between the bounds of 0.798 and 1.891 meters. (Based on mean probabilities)
+
+```{r ex1-by-hand}
+summary_stats <- pokemon %>%
+  summarize(xbar = mean(height_m),
+            s = sd(height_m),
+            n = n())
+
+tstar <- qt(0.975, df = summary_stats$n - 1)
+
+se <- summary_stats$s / sqrt(summary_stats$n)
+
+summary_stats$xbar + c(-1, 1) * tstar * se
+```
+
+
+### Exercise 2
+
+The average height of a human is 1.65 meters. Determine if there is enough 
+evidence to suggest that the true mean height of Pokemon is **different** from 
+1.65 meters using the Central Limit Theorem. State your null and alternative 
+hypotheses, the distribution of the statistic under the null hypothesis, the 
+p-value, statistical decision, and a conclusion in the context of the problem.
+
+$H_o: \mu = 1.65$
+
+$H_a: \mu \neq 1.65$
+
+```{r ex-2-use-function}
+t.test(pokemon$height_m, mu = 1.65)
+```
+
+Fail to reject the null hypothesis. Since the p-value is large, it is not 
+surprising to see values as or more extreme as 1.65 assuming null hypothesis is 
+true.
+
+```{r ex2-by-hand}
+summary_stats <- pokemon %>%
+  summarize(xbar = mean(height_m),
+            s = sd(height_m),
+            n = n())
+summary_stats
+
+se <- summary_stats$s / sqrt(summary_stats$n)
+se
+
+t <- (summary_stats$xbar - 1.65) / se     #mu = 1.65
+t
+
+2 * pt(t, df = summary_stats$n - 1) #2 * left tail value bc both sides
+
+```
+
+Testing philosophy: Assume that the null hypothesis is true, estimate how 
+surprising it is to see values as or more extreme as observed sample data.
+
+ASSUMPTIONS TO MAKE: Null Hypothesis is TRUE
+
+### Exercise 3
+
+Now determine if there is enough evidence to suggest that the true mean height 
+of Pokemon is **lower** than 1.65 meters using the Central Limit Theorem. 
+State your null and alternative hypotheses, the distribution of the statistic 
+under the null hypothesis, the p-value, statistical decision, and a conclusion 
+in the context of the problem.
+
+Since we failed to reject the null hypothesis, and there is enough evidence to 
+suggest that the true mean height of Pokemon is lower than 1.65 meters using 
+the Central Limit Theorem, we came to the wrong result, and made a type II error 
+(failing to reject a FALSE null hypothesis)
+
+```{r ex3}
+##Answers and values above
+```
+
+
+### Exercise 4
+
+Suppose that the true mean height of Pokemon is 1.4 meters. In your conclusions 
+above did you make the correct decision, a Type I error or a Type II error?
+Explain.
+
+```{r ex4}
+##Answers and values above
+```
+

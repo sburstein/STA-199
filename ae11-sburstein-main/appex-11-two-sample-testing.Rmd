@@ -1,0 +1,142 @@
+---
+title: "AE 11"
+subtitle: "Parkinson's Disease"
+date: "Due: October 7, 11:59PM"
+author: "SCOTT BURSTEIN"
+output: 
+  html_document
+---
+
+## Clone a repo + start a new project
+
+Go to the `ae11-[GITHUB USERNAME]` repo, clone it, and start a new project in 
+RStudio. See the earlier labs and application exercises for detailed 
+instructions.
+
+## Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the 
+email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@gmail.com")
+```
+
+```{r load-data, eval = FALSE}
+library(tidyverse)
+
+parkinsons <- read_csv("data/parkinsons.csv")
+head(parkinsons)
+#view(parkinsons)
+```
+
+### Exercise 1
+
+Construct and interpret a 95% confidence interval for the difference in mean
+shimmer (in dB) between the PD and non-PD individuals using a simulation-based
+approach.
+
+```{r sim-based-ci}
+set.seed(42)
+
+healthy <- parkinsons %>%
+  filter(status == "Healthy")
+
+pd <- parkinsons %>%
+  filter(status == "PD")
+
+n_sims <- 1000
+
+boot_diffs <- numeric(n_sims)
+
+for (i in 1:n_sims){
+  #create indices
+  indices_h <- sample(1:nrow(healthy), replace = TRUE)
+  indices_p <- sample(1:nrow(pd), replace = TRUE)
+  
+  #bootstrap est. group means
+  temp_h <- healthy %>%
+    slice(indices_h) %>%
+    summarize(mean_shimmer = mean(shimmer)) %>%
+    select(mean_shimmer) %>%
+    pull()
+  
+  temp_p <- pd %>%
+    slice(indices_p) %>%
+    summarize(mean_shimmer = mean(shimmer)) %>%
+    select(mean_shimmer) %>%
+    pull()
+  
+  # diff. means in bootstrap sample
+  #                Healthy    PD
+  boot_diffs[i] <- temp_h - temp_p
+}
+```
+
+```{r plot-bootstrap-dist}
+boot_diffs <- tibble(diffs = boot_diffs)
+
+ggplot(boot_diffs, aes(x = diffs)) +
+  geom_histogram(fill = "skyblue",
+                 color = "darkblue") + 
+  labs(x = "", y = "")
+
+boot_diffs %>%
+  summarize(lower = quantile(diffs, 0.025),
+            upper = quantile(diffs, 0.975))
+```
+
+
+### Exercise 2
+
+Repeat Exercise 1 using the CLT.
+
+```{r ex2-CLT}
+t.test(shimmer ~ status,
+       data = parkinsons,
+       mu = 0,
+       var.equal = FALSE,
+       alternative = "two.sided",
+       conf.level = 0.95)
+```
+
+
+### Exercise 3
+
+Is there evidence that there is a difference in shimmer between these two 
+groups? Perform a formal statistical hypothesis test using a CLT-based
+method. State your null and alternative hypotheses, your p-value, statistical 
+decision, and a conclusion in the context of the problem.
+
+$H_o: \mu_{PD} = \mu_H$
+
+$H_a: \mu_{PD} \neq \mu_H$
+
+```{r clt-test}
+t.test(shimmer ~ status,
+       data = parkinsons, 
+       mu = 0,
+       var.equal = FALSE,
+       alternative = "two.sided",
+       conf.level = 0.95)
+```
+
+Repeat Exercise 3 using a simulation-based method.
+
+### Same as Ex. 3 CLT test, modifications necessary...
+
+$H_o: \mu_{PD} = \mu_H$
+
+$H_a: \mu_{PD} \neq \mu_H$
+
+```{r sim-clt-test}
+t.test(shimmer ~ status,
+       data = parkinsons, 
+       mu = 0,
+       var.equal = FALSE,
+       alternative = "two.sided",
+       conf.level = 0.95)
+```
+
+

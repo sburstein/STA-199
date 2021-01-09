@@ -1,0 +1,143 @@
+---
+title: "AE 09"
+subtitle: "Hypothesis Testing using Simulation"
+date: "Due: Sep 25, 11:59 PM"
+author: "Scott Burstein"
+output: 
+  html_document
+---
+
+## Clone a repo + start a new project
+
+Go to the `ae09-[GITHUB USERNAME]` repo, clone it, and start a new project in 
+RStudio. See the earlier labs and application exercises for detailed instructions.
+
+## Configure git
+
+Run the following code to configure Git. Fill in your GitHub username and the 
+email address associated with your GitHub account. 
+
+```{r eval = FALSE}
+library(usethis)
+use_git_config(user.name= "sburstein", user.email="scott.burstein@duke.edu")
+```
+
+# Packages and data
+
+```{r load-packages, warning = FALSE, message = FALSE}
+library(tidyverse)
+hand <- read_csv("data/handedness.csv")
+```
+
+# Exercises
+
+The `handedness` dataset contains the handedness of a random sample of 77 Duke 
+students (one mixed-handed student was asked to choose which hand they primarily
+used to brush their teeth). 
+
+Based on previous research, 11 percent of the world is left-handed (Hardyck and Petrinovich, 1977 *Psychological Bulletin*). You are interested in whether Duke has a higher proportion of left-handed students than would be expected from the world 
+average.
+
+```{r population_parameter}
+
+hand %>%
+  count(handedness) %>%
+  mutate(prop = n / sum(n))
+
+```
+The proportion of Duke students from the sample who are left handed is 16/77 = 0.21
+
+
+1. Write in both words and symbols the population parameter and point estimate.
+
+The population parameter is the true unknown proportion of Duke students who are left-handed.
+
+The point estimate is the sample proportion of Duke students who are left-handed.
+
+The sample proportion is `r 16/77`
+
+```{r demo-round}
+round(16/77, 2)
+```
+
+2. Is it feasible to determine the parameter in this example? Why or why not?
+
+It is not feasible to determine the Duke population parameter in this example, because this would require data on every student, which is not currently available and likely difficult to obtain.
+
+3. Write in both words and symbols the null and alternative hypotheses.
+
+Null Hypotheses (Ho): p = 0.11
+The proportion of Duke students that are left handed is not significantly different from the proportion of people that are left handed globally. There is no measurable and thus meaningful deviation from the global proportion of left handed individuals. 
+
+Alternative Hypotheses (Ha): p > 0.11
+The proportion of Duke students that are left handed is significantly different from the proportion of people that are left handed globally. There is a measurable and thus meaningful deviation from the global proportion of left handed individuals.
+
+Null and alternative hypothesis should never consider p-hat $\hat{p}$!
+
+4. Conduct a simulation-based test of the hypotheses in Exercise #3 using 5000
+simulations and a random seed of `42`.
+
+```{r bootstrap_estimate}
+
+set.seed(42)
+number_sims <- 5000
+outcomes <- c("left", "right")
+
+simulated_props <- numeric(number_sims)
+
+for (i in 1:number_sims) {
+  sim <- sample(outcomes, 77, prob = c(.11, .89), replace = TRUE)
+  simulated_props[i] <- sum(sim == "left") / length(sim)
+}
+
+```
+
+5. Create a well-labeled, effective visualization of the null distribution you
+obtained via simulation. 
+
+```{r viz}
+
+simulated_props_data <- tibble(props = simulated_props)
+
+ggplot(simulated_props_data, 
+    aes(x = props)) + 
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = (16 / 77), color = "red") +
+  labs(x = "Simulated Proportion assuming Ho",
+       title = "Proportion of Left Handed Students at Duke University")
+```
+
+6. Carefully consider your visualization from Exercise #5. Where is it centered? What is the spread? Generally, does it behave the way you expect?
+
+The data is centered around a proportion of ~0.11, which is the expected left-handed population at Duke given the national average. There is a uniform spread around the mean, and it behaves how I would expect. The actual proportion, shown by the vertical red line of ~0.22 seems unlikely to occur just because of chance given the sample proportion. Thus, it seems unlikely that the resulting proportion of left handed students at Duke would occur just by chance.
+
+7. "Eye-ball" your visualization to estimate the p-value.
+
+The p-value must be around 0.05 or less, since the vast majority of the data lies on the side of the curve closer to the mean.
+
+8. Report your p-value using code.
+
+```{r p-value}
+simulated_props_data %>%
+  filter(props >= (16/77)) %>%
+  summarize(p_value = n() / nrow(simulated_props_data))
+
+#More elegant but not in line with 'tidyverse' syntax
+#simulated_props_data %>%
+#  summarize(p_value = mean(props >= (16/77)))
+```
+
+
+9. Provide a conclusion in the context of the problem.
+
+
+In conclusion, it is reasonable to believe that the proportion of left-handed students at Duke is significantly greater than the national average. Factors related to handedness, such as which side of the brain students use dominantly, could play into who is admitted to Duke (admissions typically seek a diverse and creative class each year - left-handed students might think and act in different ways than right-handed students).
+
+
+Practice using ifelse() - does same as casewhen but more simple.
+```{r ifelse}
+hand %>%
+  mutate(hand_new = ifelse(handedness == "left", "left-handed", "right-handed"))
+
+```
+
